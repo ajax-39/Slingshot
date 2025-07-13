@@ -82,81 +82,147 @@ const CSVUpload = ({ onUpload }) => {
   };
 
   return (
-    <div className="csv-upload">
-      <h2 className="text-center mb-20">Upload NSE Stock Data</h2>
-
-      {message && (
-        <div
-          className={`${
-            messageType === "error" ? "error-message" : "success-message"
-          }`}
-        >
-          {messageType === "error" ? (
-            <AlertCircle
-              size={16}
-              style={{ display: "inline", marginRight: "8px" }}
-            />
-          ) : (
-            <CheckCircle
-              size={16}
-              style={{ display: "inline", marginRight: "8px" }}
-            />
-          )}
-          {message}
-        </div>
-      )}
-
+    <>
       <div
-        className={`upload-area ${dragOver ? "drag-over" : ""}`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleUploadClick}
+        className="external-links-bar"
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          marginBottom: "24px",
+        }}
       >
-        <div className="upload-icon">
-          <FileText size={48} />
-        </div>
-
-        <h3>Drop your CSV file here</h3>
-        <p>or click to browse and select</p>
-
-        <div style={{ marginTop: "16px", fontSize: "14px", color: "#888" }}>
-          <p>
-            <strong>Required columns:</strong>
-          </p>
-          <ul style={{ textAlign: "left", display: "inline-block" }}>
-            <li>SYMBOL</li>
-            <li>LTP</li>
-            <li>%CHNG</li>
-            <li>VOLUME (shares)</li>
-          </ul>
-          <p style={{ marginTop: "16px" }}>
-            <strong>Note:</strong> Duplicate stocks (same SYMBOL) will be
-            skipped
-          </p>
-        </div>
-
-        <button
-          className="upload-button"
-          disabled={uploading}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleUploadClick();
+        <a
+          href="https://www.nseindia.com/market-data/live-equity-market?symbol=NIFTY%20TOTAL%20MARKET"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="external-link-button heatmap-btn"
+          style={{
+            minWidth: "120px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#222",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            padding: "8px 16px",
+            textDecoration: "none",
+            fontWeight: "500",
           }}
         >
-          <Upload size={16} />
-          {uploading ? "Processing..." : "Choose File"}
-        </button>
+          Heatmap
+        </a>
+        <a
+          href="https://www.nseindia.com/market-data/top-gainers-losers"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="external-link-button gainers-btn"
+          style={{
+            minWidth: "120px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#222",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            padding: "8px 16px",
+            textDecoration: "none",
+            fontWeight: "500",
+          }}
+        >
+          Top Gainers
+        </a>
       </div>
+      <div className="csv-upload">
+        <h2 className="text-center mb-20">Upload NSE Stock Data</h2>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".csv"
-        onChange={handleFileInputChange}
-        className="file-input"
-      />
-    </div>
+        {message && (
+          <div
+            className={`${
+              messageType === "error" ? "error-message" : "success-message"
+            }`}
+          >
+            {messageType === "error" ? (
+              <AlertCircle
+                size={16}
+                style={{ display: "inline", marginRight: "8px" }}
+              />
+            ) : (
+              <CheckCircle
+                size={16}
+                style={{ display: "inline", marginRight: "8px" }}
+              />
+            )}
+            {message}
+          </div>
+        )}
+
+        <div
+          className={`upload-area ${dragOver ? "drag-over" : ""}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={handleUploadClick}
+        >
+          <div className="upload-icon">
+            <FileText size={48} />
+          </div>
+
+          <h3>Drop your CSV file here</h3>
+          <p>or click to browse and select</p>
+
+          <div style={{ marginTop: "16px", fontSize: "14px", color: "#888" }}>
+            <p>
+              <strong>Required columns:</strong>
+            </p>
+            <ul style={{ textAlign: "left", display: "inline-block" }}>
+              <li>SYMBOL</li>
+              <li>LTP</li>
+              <li>%CHNG</li>
+              <li>VOLUME (shares)</li>
+            </ul>
+            <p style={{ marginTop: "16px" }}>
+              <strong>Note:</strong> Duplicate stocks (same SYMBOL) will be
+              skipped
+            </p>
+          </div>
+          <div
+            className="upload-button-group"
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              marginTop: "16px",
+            }}
+          >
+            <button
+              className="upload-button"
+              disabled={uploading}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleUploadClick();
+              }}
+              style={{ minWidth: "120px" }}
+            >
+              <Upload size={16} />
+              {uploading ? "Processing..." : "Choose File"}
+            </button>
+          </div>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileInputChange}
+          className="file-input"
+        />
+      </div>
+    </>
   );
 };
 

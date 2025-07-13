@@ -14,7 +14,10 @@ const ITEMS_PER_PAGE = 50;
 
 const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "%CHNG",
+    direction: "descending",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState(null);
   const [columnFilters, setColumnFilters] = useState({

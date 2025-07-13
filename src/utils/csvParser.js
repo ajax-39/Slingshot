@@ -61,9 +61,9 @@ const validateAndProcessData = (data, fileName) => {
       // Direct match
       if (cleanCol === cleanRequired) return true;
 
-      // For VOLUME (shares), also check for variations
+      // For VOLUME (shares), accept any column containing 'volume' (case-insensitive)
       if (requiredCol === "VOLUME (shares)") {
-        return cleanCol.includes("volume") && cleanCol.includes("shares");
+        return cleanCol.includes("volume");
       }
 
       // For other columns, check if the column contains the required text
@@ -130,15 +130,23 @@ const validateAndProcessData = (data, fileName) => {
     const parsedLTP = parseFloat(ltpValue);
     const parsedChange = parseFloat(changeValue);
 
+    // Only accept green gainers with %CHNG >= 2
+    if (isNaN(parsedChange) || parsedChange < 2) {
+      console.warn(
+        `Skipping row ${index + 1}: %CHNG less than 2% (${parsedChange})`
+      );
+      return;
+    }
+
     // Parse volume - remove commas and convert to number
     const cleanedVolume = volumeValue.toString().replace(/,/g, "");
     const parsedVolume = parseFloat(cleanedVolume);
 
-    if (isNaN(parsedLTP) || isNaN(parsedChange) || isNaN(parsedVolume)) {
+    if (isNaN(parsedLTP) || isNaN(parsedVolume)) {
       console.warn(
         `Skipping row ${
           index + 1
-        }: Invalid numeric data - LTP: ${ltpValue}, %CHNG: ${changeValue}, VOLUME: ${volumeValue}`
+        }: Invalid numeric data - LTP: ${ltpValue}, VOLUME: ${volumeValue}`
       );
       return;
     }
@@ -162,8 +170,9 @@ const validateAndProcessData = (data, fileName) => {
   }
 
   // Return both processed data and statistics
+  // Ensure new entries are shown at the top
   return {
-    data: processedData,
+    data: processedData.reverse(),
     stats: {
       fileName: fileName || "Unknown",
       totalRows: data.length,
