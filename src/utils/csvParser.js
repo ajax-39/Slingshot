@@ -151,6 +151,14 @@ const validateAndProcessData = (data, fileName) => {
       return;
     }
 
+    // Only add rows with volume >= 1,000,000
+    if (parsedVolume < 1000000) {
+      console.warn(
+        `Skipping row ${index + 1}: VOLUME less than 10L (${parsedVolume})`
+      );
+      return;
+    }
+
     // Create processed row with only required columns plus timestamp
     const processedRow = {
       SYMBOL: symbolUpper,
