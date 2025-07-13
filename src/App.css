@@ -904,7 +904,9 @@
   .stock-table-container {
     padding: 0 2px;
   }
-  .actions-column, .upload-time-cell, .symbol-cell {
+  .actions-column,
+  .upload-time-cell,
+  .symbol-cell {
     min-width: 80px;
   }
 }

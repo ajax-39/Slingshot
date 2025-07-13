@@ -27,7 +27,18 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
     "VOLUME (shares)": "all",
     "Upload Date & Time": "all",
   });
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const tableRef = useRef(null);
+
+  // Handle responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Close filter dropdown when clicking outside
   useEffect(() => {
@@ -378,8 +389,30 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
         </div>
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table">
+      <div
+        className="table-wrapper"
+        style={{
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          ...(isMobile
+            ? {
+                maxWidth: "100vw",
+                scrollbarWidth: "thin",
+              }
+            : {}),
+        }}
+      >
+        <table
+          className="data-table"
+          style={{
+            ...(isMobile
+              ? {
+                  minWidth: "auto", // Let content determine width
+                  width: "100%",
+                }
+              : {}),
+          }}
+        >
           <thead>
             <tr>
               <th className="column-header">
@@ -410,6 +443,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                 </div>
                 {renderFilterDropdown("%CHNG")}
               </th>
+              {isMobile && <th className="actions-column">ACTIONS</th>}
               <th className="column-header">
                 <div className="column-header-content">
                   <span onClick={() => handleSort("LTP")}>
@@ -424,7 +458,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                 </div>
                 {renderFilterDropdown("LTP")}
               </th>
-              <th className="actions-column">ACTIONS</th>
+              {!isMobile && <th className="actions-column">ACTIONS</th>}
               <th className="column-header">
                 <div className="column-header-content">
                   <span onClick={() => handleSort("Upload Date & Time")}>
@@ -439,20 +473,22 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                 </div>
                 {renderFilterDropdown("Upload Date & Time")}
               </th>
-              <th className="column-header">
-                <div className="column-header-content">
-                  <span onClick={() => handleSort("VOLUME (shares)")}>
-                    VOL {getSortIcon("VOLUME (shares)")}
-                  </span>
-                  <button
-                    className="filter-button"
-                    onClick={() => toggleFilter("VOLUME (shares)")}
-                  >
-                    <Filter size={14} />
-                  </button>
-                </div>
-                {renderFilterDropdown("VOLUME (shares)")}
-              </th>
+              {!isMobile && (
+                <th className="column-header">
+                  <div className="column-header-content">
+                    <span onClick={() => handleSort("VOLUME (shares)")}>
+                      VOL {getSortIcon("VOLUME (shares)")}
+                    </span>
+                    <button
+                      className="filter-button"
+                      onClick={() => toggleFilter("VOLUME (shares)")}
+                    >
+                      <Filter size={14} />
+                    </button>
+                  </div>
+                  {renderFilterDropdown("VOLUME (shares)")}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -463,37 +499,172 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
               >
                 <td className="symbol-cell">{row.SYMBOL}</td>
                 <td>{formatChangeValue(row["%CHNG"])}</td>
+                {isMobile && (
+                  <td className="actions-cell">
+                    {row.status !== "rejected" && row.status !== "accepted" && (
+                      <div
+                        className="action-buttons"
+                        style={{
+                          display: "flex",
+                          gap: "3px",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          flexDirection: "row",
+                          flexWrap: "nowrap",
+                        }}
+                      >
+                        <button
+                          className="accept-button"
+                          style={{
+                            minWidth: 24,
+                            minHeight: 24,
+                            fontSize: 12,
+                            borderRadius: 4,
+                            border: "none",
+                            background: "#4ade80",
+                            color: "#000",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "2px",
+                          }}
+                          onClick={() => onAcceptEntry(row.SYMBOL)}
+                          title="Accept"
+                        >
+                          <Check size={12} />
+                        </button>
+                        <button
+                          className="reject-button"
+                          style={{
+                            minWidth: 24,
+                            minHeight: 24,
+                            fontSize: 12,
+                            borderRadius: 4,
+                            border: "none",
+                            background: "#f87171",
+                            color: "#000",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "2px",
+                          }}
+                          onClick={() => onRejectEntry(row.SYMBOL)}
+                          title="Reject"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    {row.status === "accepted" && (
+                      <span
+                        className="status-indicator accepted"
+                        style={{ fontSize: "14px" }}
+                      >
+                        ✓
+                      </span>
+                    )}
+                    {row.status === "rejected" && (
+                      <span
+                        className="status-indicator rejected"
+                        style={{ fontSize: "14px" }}
+                      >
+                        ✗
+                      </span>
+                    )}
+                  </td>
+                )}
                 <td>₹{parseFloat(row.LTP).toFixed(2)}</td>
-                <td className="actions-cell">
-                  {row.status !== "rejected" && row.status !== "accepted" && (
-                    <div className="action-buttons">
-                      <button
-                        className="accept-button"
-                        onClick={() => onAcceptEntry(row.SYMBOL)}
-                        title="Accept"
+                {!isMobile && (
+                  <td
+                    className="actions-cell"
+                    style={{
+                      padding: "8px",
+                      textAlign: "center",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {row.status !== "rejected" && row.status !== "accepted" && (
+                      <div
+                        className="action-buttons"
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          flexDirection: "row",
+                          flexWrap: "nowrap",
+                        }}
                       >
-                        <Check size={16} />
-                      </button>
-                      <button
-                        className="reject-button"
-                        onClick={() => onRejectEntry(row.SYMBOL)}
-                        title="Reject"
+                        <button
+                          className="accept-button"
+                          style={{
+                            minWidth: 36,
+                            minHeight: 36,
+                            fontSize: 16,
+                            borderRadius: 6,
+                            border: "none",
+                            background: "#4ade80",
+                            color: "#000",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          onClick={() => onAcceptEntry(row.SYMBOL)}
+                          title="Accept"
+                        >
+                          <Check size={20} />
+                        </button>
+                        <button
+                          className="reject-button"
+                          style={{
+                            minWidth: 36,
+                            minHeight: 36,
+                            fontSize: 16,
+                            borderRadius: 6,
+                            border: "none",
+                            background: "#f87171",
+                            color: "#000",
+                            cursor: "pointer",
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          onClick={() => onRejectEntry(row.SYMBOL)}
+                          title="Reject"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                    )}
+                    {row.status === "accepted" && (
+                      <span
+                        className="status-indicator accepted"
+                        style={{ fontSize: "18px" }}
                       >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  )}
-                  {row.status === "accepted" && (
-                    <span className="status-indicator accepted">✓</span>
-                  )}
-                  {row.status === "rejected" && (
-                    <span className="status-indicator rejected">✗</span>
-                  )}
-                </td>
+                        ✓
+                      </span>
+                    )}
+                    {row.status === "rejected" && (
+                      <span
+                        className="status-indicator rejected"
+                        style={{ fontSize: "18px" }}
+                      >
+                        ✗
+                      </span>
+                    )}
+                  </td>
+                )}
                 <td className="upload-time-cell">
                   {formatTimeOnly(row["Upload Date & Time"])}
                 </td>
-                <td>{formatVolume(row["VOLUME (shares)"])}</td>
+                {!isMobile && <td>{formatVolume(row["VOLUME (shares)"])}</td>}
               </tr>
             ))}
           </tbody>
