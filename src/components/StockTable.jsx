@@ -340,6 +340,18 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
     );
   };
 
+  const formatTimeOnly = (dateTimeStr) => {
+    if (!dateTimeStr) return "";
+    // Expecting format: DD-MM-YYYY HH:mm:ss
+    const timePart = dateTimeStr.split(" ")[1];
+    if (!timePart) return "";
+    let [hour, minute] = timePart.split(":");
+    hour = parseInt(hour);
+    const ampm = hour >= 12 ? "pm" : "am";
+    hour = hour % 12 || 12;
+    return `${hour}:${minute} ${ampm}`;
+  };
+
   if (data.length === 0) {
     return (
       <div className="stock-table-container">
@@ -386,6 +398,20 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
               </th>
               <th className="column-header">
                 <div className="column-header-content">
+                  <span onClick={() => handleSort("%CHNG")}>
+                    %CHNG {getSortIcon("%CHNG")}
+                  </span>
+                  <button
+                    className="filter-button"
+                    onClick={() => toggleFilter("%CHNG")}
+                  >
+                    <Filter size={14} />
+                  </button>
+                </div>
+                {renderFilterDropdown("%CHNG")}
+              </th>
+              <th className="column-header">
+                <div className="column-header-content">
                   <span onClick={() => handleSort("LTP")}>
                     LTP {getSortIcon("LTP")}
                   </span>
@@ -398,19 +424,20 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                 </div>
                 {renderFilterDropdown("LTP")}
               </th>
+              <th className="actions-column">ACTIONS</th>
               <th className="column-header">
                 <div className="column-header-content">
-                  <span onClick={() => handleSort("%CHNG")}>
-                    %CHNG {getSortIcon("%CHNG")}
+                  <span onClick={() => handleSort("Upload Date & Time")}>
+                    TIME {getSortIcon("Upload Date & Time")}
                   </span>
                   <button
                     className="filter-button"
-                    onClick={() => toggleFilter("%CHNG")}
+                    onClick={() => toggleFilter("Upload Date & Time")}
                   >
                     <Filter size={14} />
                   </button>
                 </div>
-                {renderFilterDropdown("%CHNG")}
+                {renderFilterDropdown("Upload Date & Time")}
               </th>
               <th className="column-header">
                 <div className="column-header-content">
@@ -426,21 +453,6 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                 </div>
                 {renderFilterDropdown("VOLUME (shares)")}
               </th>
-              <th className="column-header">
-                <div className="column-header-content">
-                  <span onClick={() => handleSort("Upload Date & Time")}>
-                    TIME {getSortIcon("Upload Date & Time")}
-                  </span>
-                  <button
-                    className="filter-button"
-                    onClick={() => toggleFilter("Upload Date & Time")}
-                  >
-                    <Filter size={14} />
-                  </button>
-                </div>
-                {renderFilterDropdown("Upload Date & Time")}
-              </th>
-              <th className="actions-column">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -450,12 +462,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                 className={getRowClassName(row)}
               >
                 <td className="symbol-cell">{row.SYMBOL}</td>
-                <td>₹{parseFloat(row.LTP).toFixed(2)}</td>
                 <td>{formatChangeValue(row["%CHNG"])}</td>
-                <td>{formatVolume(row["VOLUME (shares)"])}</td>
-                <td className="upload-time-cell">
-                  {row["Upload Date & Time"]}
-                </td>
+                <td>₹{parseFloat(row.LTP).toFixed(2)}</td>
                 <td className="actions-cell">
                   {row.status !== "rejected" && row.status !== "accepted" && (
                     <div className="action-buttons">
@@ -482,6 +490,10 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                     <span className="status-indicator rejected">✗</span>
                   )}
                 </td>
+                <td className="upload-time-cell">
+                  {formatTimeOnly(row["Upload Date & Time"])}
+                </td>
+                <td>{formatVolume(row["VOLUME (shares)"])}</td>
               </tr>
             ))}
           </tbody>

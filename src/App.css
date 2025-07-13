@@ -883,3 +883,28 @@
     width: 15%;
   }
 }
+
+@media (max-width: 600px) {
+  .data-table th,
+  .data-table td {
+    padding: 6px;
+    font-size: 13px;
+  }
+  .data-table th {
+    font-size: 13px;
+  }
+  .data-table {
+    font-size: 13px;
+    min-width: 600px;
+    /* allow horizontal scroll for all columns */
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .stock-table-container {
+    padding: 0 2px;
+  }
+  .actions-column, .upload-time-cell, .symbol-cell {
+    min-width: 80px;
+  }
+}

@@ -99,19 +99,28 @@ const CSVUpload = ({ onUpload }) => {
           rel="noopener noreferrer"
           className="external-link-button heatmap-btn"
           style={{
-            minWidth: "120px",
+            minWidth: "140px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#222",
+            background: "linear-gradient(90deg, #1e3c72 0%, #2a5298 100%)",
             color: "#fff",
             border: "none",
-            borderRadius: "4px",
-            padding: "8px 16px",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(30,60,114,0.15)",
+            padding: "12px 20px",
             textDecoration: "none",
-            fontWeight: "500",
+            fontWeight: "600",
+            fontSize: "1rem",
+            letterSpacing: "0.5px",
+            transition: "transform 0.2s",
           }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.07)")}
+          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
+          <span role="img" aria-label="heatmap" style={{ marginRight: 8 }}>
+            🔥
+          </span>{" "}
           Heatmap
         </a>
         <a
@@ -120,19 +129,28 @@ const CSVUpload = ({ onUpload }) => {
           rel="noopener noreferrer"
           className="external-link-button gainers-btn"
           style={{
-            minWidth: "120px",
+            minWidth: "140px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#222",
+            background: "linear-gradient(90deg, #11998e 0%, #38ef7d 100%)",
             color: "#fff",
             border: "none",
-            borderRadius: "4px",
-            padding: "8px 16px",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(17,153,142,0.15)",
+            padding: "12px 20px",
             textDecoration: "none",
-            fontWeight: "500",
+            fontWeight: "600",
+            fontSize: "1rem",
+            letterSpacing: "0.5px",
+            transition: "transform 0.2s",
           }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.07)")}
+          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
+          <span role="img" aria-label="top gainers" style={{ marginRight: 8 }}>
+            🚀
+          </span>{" "}
           Top Gainers
         </a>
       </div>
@@ -166,61 +184,62 @@ const CSVUpload = ({ onUpload }) => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleUploadClick}
+          style={{
+            minHeight: "180px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
-          <div className="upload-icon">
+          <div className="upload-icon" style={{ marginBottom: "16px" }}>
             <FileText size={48} />
           </div>
-
-          <h3>Drop your CSV file here</h3>
-          <p>or click to browse and select</p>
-
-          <div style={{ marginTop: "16px", fontSize: "14px", color: "#888" }}>
-            <p>
-              <strong>Required columns:</strong>
-            </p>
-            <ul style={{ textAlign: "left", display: "inline-block" }}>
-              <li>SYMBOL</li>
-              <li>LTP</li>
-              <li>%CHNG</li>
-              <li>VOLUME (shares)</li>
-            </ul>
-            <p style={{ marginTop: "16px" }}>
-              <strong>Note:</strong> Duplicate stocks (same SYMBOL) will be
-              skipped
-            </p>
-          </div>
-          <div
-            className="upload-button-group"
+          <h3
             style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              marginTop: "16px",
+              fontWeight: 600,
+              fontSize: "1.2rem",
+              marginBottom: "24px",
             }}
           >
-            <button
-              className="upload-button"
-              disabled={uploading}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleUploadClick();
-              }}
-              style={{ minWidth: "120px" }}
-            >
-              <Upload size={16} />
-              {uploading ? "Processing..." : "Choose File"}
-            </button>
-          </div>
+            Drop CSV file here
+          </h3>
+          <button
+            className="upload-button"
+            disabled={uploading}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUploadClick();
+            }}
+            style={{
+              minWidth: "140px",
+              padding: "12px 20px",
+              borderRadius: "8px",
+              background: "linear-gradient(90deg,#434343 0%,#000000 100%)",
+              color: "#fff",
+              fontWeight: "600",
+              fontSize: "1rem",
+              border: "none",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              transition: "transform 0.2s",
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.transform = "scale(1.07)")
+            }
+            onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <Upload size={18} style={{ marginRight: 8 }} />
+            {uploading ? "Processing..." : "Choose File"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileInputChange}
+            className="file-input"
+            style={{ display: "none" }}
+          />
         </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv"
-          onChange={handleFileInputChange}
-          className="file-input"
-        />
       </div>
     </>
   );
