@@ -71,13 +71,21 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   }, []);
 
   // Separate data by status for proper ordering
-  const { pendingData, acceptedData, flaggedData, rejectedData } = useMemo(() => {
-    const pending = data.filter((item) => !item.status || item.status === "pending");
-    const accepted = data.filter((item) => item.status === "accepted");
-    const flagged = data.filter((item) => item.status === "no setup");
-    const rejected = data.filter((item) => item.status === "rejected");
-    return { pendingData: pending, acceptedData: accepted, flaggedData: flagged, rejectedData: rejected };
-  }, [data]);
+  const { pendingData, acceptedData, flaggedData, rejectedData } =
+    useMemo(() => {
+      const pending = data.filter(
+        (item) => !item.status || item.status === "pending"
+      );
+      const accepted = data.filter((item) => item.status === "accepted");
+      const flagged = data.filter((item) => item.status === "no setup");
+      const rejected = data.filter((item) => item.status === "rejected");
+      return {
+        pendingData: pending,
+        acceptedData: accepted,
+        flaggedData: flagged,
+        rejectedData: rejected,
+      };
+    }, [data]);
 
   // Filter non-rejected data based on search term and column filters
   const filteredNonRejectedData = useMemo(() => {
@@ -117,7 +125,14 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     }
 
     return filtered;
-  }, [pendingData, acceptedData, flaggedData, searchTerm, columnFilters, slingshotActive]);
+  }, [
+    pendingData,
+    acceptedData,
+    flaggedData,
+    searchTerm,
+    columnFilters,
+    slingshotActive,
+  ]);
 
   // Sort non-rejected data
   const sortedNonRejectedData = useMemo(() => {
@@ -173,8 +188,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
       return [...dataToSort].sort((a, b) => {
         const aStatus = a.status || "pending";
         const bStatus = b.status || "pending";
-        
-        const statusPriority = { "pending": 0, "accepted": 1, "no setup": 2 };
+
+        const statusPriority = { pending: 0, accepted: 1, "no setup": 2 };
         return statusPriority[aStatus] - statusPriority[bStatus];
       });
     }
@@ -182,6 +197,21 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     return [...dataToSort].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
+
+      // Handle status sorting (yellow->green->pink->red)
+      if (sortConfig.key === "status") {
+        const aStatus = a.status || "pending";
+        const bStatus = b.status || "pending";
+        
+        const statusOrder = { 
+          "pending": 0,    // yellow
+          "accepted": 1,   // green
+          "no setup": 2,   // pink
+          "rejected": 3    // red
+        };
+        
+        return statusOrder[aStatus] - statusOrder[bStatus];
+      }
 
       // Handle numeric columns
       if (
@@ -238,6 +268,14 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     }));
     setCurrentPage(1);
     setActiveFilter(null);
+  };
+
+  const handleStatusSort = () => {
+    setSortConfig({
+      key: "status",
+      direction: "asc",
+    });
+    setCurrentPage(1);
   };
 
   const toggleFilter = (column) => {
@@ -529,7 +567,15 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
                 </div>
                 {renderFilterDropdown("LTP")}
               </th>
-              {!isMobile && <th className="actions-column">ACTIONS</th>}
+              {!isMobile && (
+                <th className="column-header">
+                  <div className="column-header-content">
+                    <span onClick={handleStatusSort}>
+                      ACTIONS {getSortIcon("status")}
+                    </span>
+                  </div>
+                </th>
+              )}
               <th className="column-header">
                 <div className="column-header-content">
                   <span onClick={() => handleSort("Upload Date & Time")}>
