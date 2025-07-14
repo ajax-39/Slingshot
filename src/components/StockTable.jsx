@@ -202,14 +202,14 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
       if (sortConfig.key === "status") {
         const aStatus = a.status || "pending";
         const bStatus = b.status || "pending";
-        
-        const statusOrder = { 
-          "pending": 0,    // yellow
-          "accepted": 1,   // green
-          "no setup": 2,   // pink
-          "rejected": 3    // red
+
+        const statusOrder = {
+          pending: 0, // yellow
+          accepted: 1, // green
+          "no setup": 2, // pink
+          rejected: 3, // red
         };
-        
+
         return statusOrder[aStatus] - statusOrder[bStatus];
       }
 
@@ -446,10 +446,10 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     const timePart = dateTimeStr.split(" ")[1];
     if (!timePart) return "";
     let [hour, minute] = timePart.split(":");
-    hour = parseInt(hour);
-    const ampm = hour >= 12 ? "pm" : "am";
-    hour = hour % 12;
-    if (hour === 0) hour = 12; // Convert 0 to 12 for 12am
+    const originalHour = parseInt(hour);
+    const ampm = originalHour >= 12 ? "pm" : "am";
+    hour = originalHour % 12;
+    if (hour === 0) hour = 12; // Convert 0 to 12 for 12am/12pm
     return `${hour}:${minute} ${ampm}`;
   };
 
