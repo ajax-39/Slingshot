@@ -12,7 +12,7 @@ import {
 
 const ITEMS_PER_PAGE = 50;
 
-const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
+const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "%CHNG",
@@ -30,6 +30,14 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [slingshotActive, setSlingshotActive] = useState(false);
   const tableRef = useRef(null);
+
+  // Handle flag entry for "no setup" status
+  const handleFlagEntry = (symbol) => {
+    // This will be passed up to parent component to update the entry status
+    if (onFlagEntry) {
+      onFlagEntry(symbol);
+    }
+  };
 
   // Listen for slingshot filter toggle
   useEffect(() => {
@@ -62,16 +70,18 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
     };
   }, []);
 
-  // Separate accepted/pending and rejected data
-  const { acceptedData, rejectedData } = useMemo(() => {
-    const accepted = data.filter((item) => item.status !== "rejected");
+  // Separate data by status for proper ordering
+  const { pendingData, acceptedData, flaggedData, rejectedData } = useMemo(() => {
+    const pending = data.filter((item) => !item.status || item.status === "pending");
+    const accepted = data.filter((item) => item.status === "accepted");
+    const flagged = data.filter((item) => item.status === "no setup");
     const rejected = data.filter((item) => item.status === "rejected");
-    return { acceptedData: accepted, rejectedData: rejected };
+    return { pendingData: pending, acceptedData: accepted, flaggedData: flagged, rejectedData: rejected };
   }, [data]);
 
-  // Filter accepted data based on search term and column filters
-  const filteredAcceptedData = useMemo(() => {
-    let filtered = acceptedData;
+  // Filter non-rejected data based on search term and column filters
+  const filteredNonRejectedData = useMemo(() => {
+    let filtered = [...pendingData, ...acceptedData, ...flaggedData];
 
     // Slingshot filter logic
     if (slingshotActive) {
@@ -107,11 +117,11 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
     }
 
     return filtered;
-  }, [acceptedData, searchTerm, columnFilters, slingshotActive]);
+  }, [pendingData, acceptedData, flaggedData, searchTerm, columnFilters, slingshotActive]);
 
-  // Sort accepted data
-  const sortedAcceptedData = useMemo(() => {
-    let dataToSort = filteredAcceptedData;
+  // Sort non-rejected data
+  const sortedNonRejectedData = useMemo(() => {
+    let dataToSort = filteredNonRejectedData;
 
     // Apply column filter sorting
     if (columnFilters.LTP === "asc" || columnFilters.LTP === "desc") {
@@ -158,7 +168,16 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
     }
 
     // Apply manual sorting if no column filter is active
-    if (!sortConfig.key) return dataToSort;
+    if (!sortConfig.key) {
+      // Sort by status priority: pending (new entries) first, then accepted, then flagged
+      return [...dataToSort].sort((a, b) => {
+        const aStatus = a.status || "pending";
+        const bStatus = b.status || "pending";
+        
+        const statusPriority = { "pending": 0, "accepted": 1, "no setup": 2 };
+        return statusPriority[aStatus] - statusPriority[bStatus];
+      });
+    }
 
     return [...dataToSort].sort((a, b) => {
       const aValue = a[sortConfig.key];
@@ -183,12 +202,12 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
       if (aStr > bStr) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-  }, [filteredAcceptedData, sortConfig, columnFilters]);
+  }, [filteredNonRejectedData, sortConfig, columnFilters]);
 
-  // Combine sorted accepted data with rejected data (rejected always at bottom)
+  // Combine sorted data with rejected data (rejected always at bottom)
   const combinedData = useMemo(() => {
-    return [...sortedAcceptedData, ...rejectedData];
-  }, [sortedAcceptedData, rejectedData]);
+    return [...sortedNonRejectedData, ...rejectedData];
+  }, [sortedNonRejectedData, rejectedData]);
 
   // Paginate combined data
   const paginatedData = useMemo(() => {
@@ -235,11 +254,13 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
       if (isSlingshot) {
         if (row.status === "accepted") return "slingshot-accepted-row";
         if (row.status === "rejected") return "slingshot-rejected-row";
+        if (row.status === "no setup") return "slingshot-flagged-row";
         return "slingshot-pending-row";
       }
     }
     if (row.status === "rejected") return "rejected-row";
     if (row.status === "accepted") return "accepted-row";
+    if (row.status === "no setup") return "flagged-row";
     return "pending-row";
   };
 
@@ -389,7 +410,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
     let [hour, minute] = timePart.split(":");
     hour = parseInt(hour);
     const ampm = hour >= 12 ? "pm" : "am";
-    hour = hour % 12 || 12;
+    hour = hour % 12;
+    if (hour === 0) hour = 12; // Convert 0 to 12 for 12am
     return `${hour}:${minute} ${ampm}`;
   };
 
@@ -570,6 +592,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                               ? "#ec4899"
                               : row.status === "rejected"
                               ? "#ef4444"
+                              : row.status === "no setup"
+                              ? "#ec4899"
                               : "#7c3aed",
                           color: "#fff",
                           fontWeight: "bold",
@@ -587,7 +611,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                   {isMobile && (
                     <td className="actions-cell">
                       {row.status !== "rejected" &&
-                        row.status !== "accepted" && (
+                        row.status !== "accepted" &&
+                        row.status !== "no setup" && (
                           <div
                             className="action-buttons"
                             style={{
@@ -646,11 +671,50 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                           </div>
                         )}
                       {row.status === "accepted" && (
-                        <span
-                          className="status-indicator accepted"
-                          style={{ fontSize: "14px" }}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "3px",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
-                          ✓
+                          <span
+                            className="status-indicator accepted"
+                            style={{ fontSize: "14px" }}
+                          >
+                            ✓
+                          </span>
+                          <button
+                            className="flag-button"
+                            style={{
+                              minWidth: 24,
+                              minHeight: 24,
+                              fontSize: 12,
+                              borderRadius: 4,
+                              border: "none",
+                              background: "#ec4899",
+                              color: "#fff",
+                              cursor: "pointer",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "2px",
+                            }}
+                            onClick={() => handleFlagEntry(row.SYMBOL)}
+                            title="No Setup"
+                          >
+                            🚫
+                          </button>
+                        </div>
+                      )}
+                      {row.status === "no setup" && (
+                        <span
+                          className="status-indicator flagged"
+                          style={{ fontSize: "14px", color: "#ec4899" }}
+                        >
+                          🚫
                         </span>
                       )}
                       {row.status === "rejected" && (
@@ -674,7 +738,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                       }}
                     >
                       {row.status !== "rejected" &&
-                        row.status !== "accepted" && (
+                        row.status !== "accepted" &&
+                        row.status !== "no setup" && (
                           <div
                             className="action-buttons"
                             style={{
@@ -731,11 +796,49 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry }) => {
                           </div>
                         )}
                       {row.status === "accepted" && (
-                        <span
-                          className="status-indicator accepted"
-                          style={{ fontSize: "18px" }}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
                         >
-                          ✓
+                          <span
+                            className="status-indicator accepted"
+                            style={{ fontSize: "18px" }}
+                          >
+                            ✓
+                          </span>
+                          <button
+                            className="flag-button"
+                            style={{
+                              minWidth: 36,
+                              minHeight: 36,
+                              fontSize: 16,
+                              borderRadius: 6,
+                              border: "none",
+                              background: "#ec4899",
+                              color: "#fff",
+                              cursor: "pointer",
+                              boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                            onClick={() => handleFlagEntry(row.SYMBOL)}
+                            title="No Setup"
+                          >
+                            🚫
+                          </button>
+                        </div>
+                      )}
+                      {row.status === "no setup" && (
+                        <span
+                          className="status-indicator flagged"
+                          style={{ fontSize: "18px", color: "#ec4899" }}
+                        >
+                          🚫
                         </span>
                       )}
                       {row.status === "rejected" && (

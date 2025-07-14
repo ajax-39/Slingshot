@@ -91,6 +91,14 @@ function App() {
     saveDataToLocalStorage(updatedData);
   };
 
+  const handleFlagEntry = (symbol) => {
+    const updatedData = stockData.map((item) =>
+      item.SYMBOL === symbol ? { ...item, status: "no setup" } : item
+    );
+    setStockData(updatedData);
+    saveDataToLocalStorage(updatedData);
+  };
+
   const handleClearAllData = () => {
     const confirmed = window.confirm(
       "Are you sure you want to clear all data?\n\nThis will permanently delete:\n• All uploaded stock data\n• File upload history\n\nThis action cannot be undone."
@@ -127,6 +135,7 @@ function App() {
               data={stockData}
               onAcceptEntry={handleAcceptEntry}
               onRejectEntry={handleRejectEntry}
+              onFlagEntry={handleFlagEntry}
             />
           </div>
         )}
