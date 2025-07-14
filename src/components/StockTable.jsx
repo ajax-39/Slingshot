@@ -282,6 +282,39 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     setActiveFilter(activeFilter === column ? null : column);
   };
 
+  const handleSlingshotToggle = () => {
+    setSlingshotActive((prev) => !prev);
+  };
+
+  const handleOpenCharts = () => {
+    // Get all pending (yellow) stocks
+    const pendingStocks = data.filter(
+      (item) => !item.status || item.status === "pending"
+    );
+    
+    if (pendingStocks.length === 0) {
+      alert("No pending stocks found to open charts for.");
+      return;
+    }
+    
+    // Confirm with user before opening multiple tabs
+    const confirmed = window.confirm(
+      `This will open ${pendingStocks.length} chart tabs. Are you sure you want to continue?`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    // Open TradingView chart for each pending stock with a small delay
+    pendingStocks.forEach((stock, index) => {
+      setTimeout(() => {
+        const url = `https://www.tradingview.com/chart/NXBDGcbw/?symbol=NSE%3A${stock.SYMBOL}`;
+        window.open(url, '_blank');
+      }, index * 500); // 500ms delay between each tab opening
+    });
+  };
+
   const getRowClassName = (row) => {
     if (slingshotActive) {
       const ltp = parseFloat(row.LTP);
@@ -467,26 +500,60 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     <div className="stock-table-container" ref={tableRef}>
       <div className="table-header">
         <h2>Stock Scanner</h2>
+        <button
+          className="slingshot-toggle-button"
+          onClick={handleSlingshotToggle}
+          style={{
+            background: slingshotActive ? "#7c3aed" : "#374151",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.9em",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            boxShadow: slingshotActive
+              ? "0 2px 8px rgba(124,62,237,0.3)"
+              : "0 1px 4px rgba(0,0,0,0.1)",
+            transition: "all 0.2s ease",
+          }}
+          title={
+            slingshotActive
+              ? "Disable Slingshot Filter"
+              : "Enable Slingshot Filter"
+          }
+        >
+          🚀 Slingshot
+        </button>
+        <button
+          className="charts-button"
+          onClick={handleOpenCharts}
+          style={{
+            background: "#059669",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.9em",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+            transition: "all 0.2s ease",
+          }}
+          title="Open TradingView charts for all pending stocks"
+        >
+          📊 Charts
+        </button>
         <div
           className="search-container"
           style={{ display: "flex", alignItems: "center" }}
         >
-          {/* Slingshot filter indicator */}
-          <span
-            style={{
-              display: slingshotActive ? "inline-block" : "none",
-              background: "#7c3aed",
-              color: "#fff",
-              borderRadius: "6px",
-              padding: "4px 10px",
-              marginRight: "10px",
-              fontWeight: "bold",
-              fontSize: "0.95em",
-              boxShadow: "0 1px 4px rgba(124,62,237,0.15)",
-            }}
-          >
-            🚀 Slingshot Active
-          </span>
           <Search className="search-icon" size={16} />
           <input
             type="text"

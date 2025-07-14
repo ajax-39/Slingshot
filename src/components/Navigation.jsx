@@ -29,20 +29,6 @@ const Navigation = ({
           {dataCount > 0 && <span className="data-count">({dataCount})</span>}
         </button>
 
-        {/* Slingshot filter button */}
-        {dataCount > 0 && (
-          <button
-            className={`nav-button slingshot-button`}
-            style={{ background: "#7c3aed", color: "#fff", marginRight: 8 }}
-            onClick={() =>
-              window.dispatchEvent(new CustomEvent("slingshot-filter-toggle"))
-            }
-            title="Apply Slingshot Filter"
-          >
-            🚀 Slingshot
-          </button>
-        )}
-
         {dataCount > 0 && (
           <button
             className="nav-button clear-button"
