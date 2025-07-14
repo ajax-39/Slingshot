@@ -6,9 +6,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Check,
-  X,
 } from "lucide-react";
+import StockTableHeader from "./StockTableHeader";
+import StockTableRow from "./StockTableRow";
+import {
+  formatVolume,
+  formatTimeOnly,
+  getRowClassName,
+  handleOpenCharts,
+} from "../utils/stockTableUtils";
 
 const ITEMS_PER_PAGE = 50;
 
@@ -278,61 +284,12 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     setCurrentPage(1);
   };
 
-  const toggleFilter = (column) => {
-    setActiveFilter(activeFilter === column ? null : column);
-  };
-
   const handleSlingshotToggle = () => {
     setSlingshotActive((prev) => !prev);
   };
 
-  const handleOpenCharts = () => {
-    // Get all pending (yellow) stocks
-    const pendingStocks = data.filter(
-      (item) => !item.status || item.status === "pending"
-    );
-    
-    if (pendingStocks.length === 0) {
-      alert("No pending stocks found to open charts for.");
-      return;
-    }
-    
-    // Confirm with user before opening multiple tabs
-    const confirmed = window.confirm(
-      `This will open ${pendingStocks.length} chart tabs. Are you sure you want to continue?`
-    );
-    
-    if (!confirmed) {
-      return;
-    }
-    
-    // Open TradingView chart for each pending stock with a small delay
-    pendingStocks.forEach((stock, index) => {
-      setTimeout(() => {
-        const url = `https://www.tradingview.com/chart/NXBDGcbw/?symbol=NSE%3A${stock.SYMBOL}`;
-        window.open(url, '_blank');
-      }, index * 500); // 500ms delay between each tab opening
-    });
-  };
-
-  const getRowClassName = (row) => {
-    if (slingshotActive) {
-      const ltp = parseFloat(row.LTP);
-      const vol = parseFloat(row["VOLUME (shares)"]);
-      const chng = parseFloat(row["%CHNG"]);
-      const isSlingshot =
-        ltp >= 100 && ltp <= 3000 && vol >= 1000000 && chng > 3;
-      if (isSlingshot) {
-        if (row.status === "accepted") return "slingshot-accepted-row";
-        if (row.status === "rejected") return "slingshot-rejected-row";
-        if (row.status === "no setup") return "slingshot-flagged-row";
-        return "slingshot-pending-row";
-      }
-    }
-    if (row.status === "rejected") return "rejected-row";
-    if (row.status === "accepted") return "accepted-row";
-    if (row.status === "no setup") return "flagged-row";
-    return "pending-row";
+  const handleOpenChartsClick = () => {
+    handleOpenCharts(data);
   };
 
   const formatChangeValue = (change) => {
@@ -352,16 +309,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     );
   };
 
-  const formatVolume = (volume) => {
-    const num = parseInt(volume);
-    if (num >= 10000000) {
-      return `${(num / 10000000).toFixed(1)}Cr`;
-    } else if (num >= 100000) {
-      return `${(num / 100000).toFixed(1)}L`;
-    } else if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
-    return num.toLocaleString();
+  const toggleFilter = (column) => {
+    setActiveFilter(activeFilter === column ? null : column);
   };
 
   const getSortIcon = (columnKey) => {
@@ -371,119 +320,6 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     ) : (
       <ChevronDown size={16} />
     );
-  };
-
-  const renderFilterDropdown = (column) => {
-    if (activeFilter !== column) return null;
-
-    if (column === "SYMBOL") {
-      return (
-        <div className="filter-dropdown">
-          <div className="filter-header">
-            <span>Search Symbol</span>
-            <button
-              className="close-filter"
-              onClick={() => setActiveFilter(null)}
-            >
-              ×
-            </button>
-          </div>
-          <input
-            type="text"
-            placeholder="Search symbol..."
-            value={columnFilters.SYMBOL}
-            onChange={(e) => handleColumnFilter("SYMBOL", e.target.value)}
-            className="filter-input"
-          />
-        </div>
-      );
-    }
-
-    if (column === "LTP") {
-      return (
-        <div className="filter-dropdown">
-          <div className="filter-header">
-            <span>LTP Options</span>
-            <button
-              className="close-filter"
-              onClick={() => setActiveFilter(null)}
-            >
-              ×
-            </button>
-          </div>
-          <div
-            className="filter-option"
-            onClick={() => handleColumnFilter("LTP", "all")}
-          >
-            All
-          </div>
-          <div
-            className="filter-option"
-            onClick={() => handleColumnFilter("LTP", "asc")}
-          >
-            Sort Ascending
-          </div>
-          <div
-            className="filter-option"
-            onClick={() => handleColumnFilter("LTP", "desc")}
-          >
-            Sort Descending
-          </div>
-          <div
-            className="filter-option"
-            onClick={() => handleColumnFilter("LTP", "range_100_3000")}
-          >
-            Range 100-3000
-          </div>
-        </div>
-      );
-    }
-
-    // For %CHNG, VOLUME, Upload Time - only sorting options
-    return (
-      <div className="filter-dropdown">
-        <div className="filter-header">
-          <span>{column} Options</span>
-          <button
-            className="close-filter"
-            onClick={() => setActiveFilter(null)}
-          >
-            ×
-          </button>
-        </div>
-        <div
-          className="filter-option"
-          onClick={() => handleColumnFilter(column, "all")}
-        >
-          All
-        </div>
-        <div
-          className="filter-option"
-          onClick={() => handleColumnFilter(column, "asc")}
-        >
-          Sort Ascending
-        </div>
-        <div
-          className="filter-option"
-          onClick={() => handleColumnFilter(column, "desc")}
-        >
-          Sort Descending
-        </div>
-      </div>
-    );
-  };
-
-  const formatTimeOnly = (dateTimeStr) => {
-    if (!dateTimeStr) return "";
-    // Expecting format: DD-MM-YYYY HH:mm:ss
-    const timePart = dateTimeStr.split(" ")[1];
-    if (!timePart) return "";
-    let [hour, minute] = timePart.split(":");
-    const originalHour = parseInt(hour);
-    const ampm = originalHour >= 12 ? "pm" : "am";
-    hour = originalHour % 12;
-    if (hour === 0) hour = 12; // Convert 0 to 12 for 12am/12pm
-    return `${hour}:${minute} ${ampm}`;
   };
 
   if (data.length === 0) {
@@ -530,7 +366,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
         </button>
         <button
           className="charts-button"
-          onClick={handleOpenCharts}
+          onClick={handleOpenChartsClick}
           style={{
             background: "#059669",
             color: "#fff",
@@ -589,388 +425,34 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
               : {}),
           }}
         >
-          <thead>
-            <tr>
-              <th className="column-header">
-                <div className="column-header-content">
-                  <span onClick={() => handleSort("SYMBOL")}>
-                    SYMBOL {getSortIcon("SYMBOL")}
-                  </span>
-                  <button
-                    className="filter-button"
-                    onClick={() => toggleFilter("SYMBOL")}
-                  >
-                    <Filter size={14} />
-                  </button>
-                </div>
-                {renderFilterDropdown("SYMBOL")}
-              </th>
-              <th className="column-header">
-                <div className="column-header-content">
-                  <span onClick={() => handleSort("%CHNG")}>
-                    %CHNG {getSortIcon("%CHNG")}
-                  </span>
-                  <button
-                    className="filter-button"
-                    onClick={() => toggleFilter("%CHNG")}
-                  >
-                    <Filter size={14} />
-                  </button>
-                </div>
-                {renderFilterDropdown("%CHNG")}
-              </th>
-              {isMobile && <th className="actions-column">ACTIONS</th>}
-              <th className="column-header">
-                <div className="column-header-content">
-                  <span onClick={() => handleSort("LTP")}>
-                    LTP {getSortIcon("LTP")}
-                  </span>
-                  <button
-                    className="filter-button"
-                    onClick={() => toggleFilter("LTP")}
-                  >
-                    <Filter size={14} />
-                  </button>
-                </div>
-                {renderFilterDropdown("LTP")}
-              </th>
-              {!isMobile && (
-                <th className="column-header">
-                  <div className="column-header-content">
-                    <span onClick={handleStatusSort}>
-                      ACTIONS {getSortIcon("status")}
-                    </span>
-                  </div>
-                </th>
-              )}
-              <th className="column-header">
-                <div className="column-header-content">
-                  <span onClick={() => handleSort("Upload Date & Time")}>
-                    TIME {getSortIcon("Upload Date & Time")}
-                  </span>
-                  <button
-                    className="filter-button"
-                    onClick={() => toggleFilter("Upload Date & Time")}
-                  >
-                    <Filter size={14} />
-                  </button>
-                </div>
-                {renderFilterDropdown("Upload Date & Time")}
-              </th>
-              {!isMobile && (
-                <th className="column-header">
-                  <div className="column-header-content">
-                    <span onClick={() => handleSort("VOLUME (shares)")}>
-                      VOL {getSortIcon("VOLUME (shares)")}
-                    </span>
-                    <button
-                      className="filter-button"
-                      onClick={() => toggleFilter("VOLUME (shares)")}
-                    >
-                      <Filter size={14} />
-                    </button>
-                  </div>
-                  {renderFilterDropdown("VOLUME (shares)")}
-                </th>
-              )}
-            </tr>
-          </thead>
+          <StockTableHeader
+            isMobile={isMobile}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            onStatusSort={handleStatusSort}
+            activeFilter={activeFilter}
+            onToggleFilter={toggleFilter}
+            onColumnFilter={handleColumnFilter}
+            columnFilters={columnFilters}
+            getSortIcon={getSortIcon}
+          />
           <tbody>
-            {paginatedData.map((row, index) => {
-              // Slingshot filter match
-              const ltp = parseFloat(row.LTP);
-              const vol = parseFloat(row["VOLUME (shares)"]);
-              const chng = parseFloat(row["%CHNG"]);
-              const isSlingshot =
-                slingshotActive &&
-                ltp >= 100 &&
-                ltp <= 3000 &&
-                vol >= 1000000 &&
-                chng > 3;
-              return (
-                <tr
-                  key={`${row.SYMBOL}-${index}`}
-                  className={getRowClassName(row)}
-                >
-                  <td className="symbol-cell">
-                    {row.SYMBOL}
-                    {isSlingshot && (
-                      <span
-                        style={{
-                          marginLeft: 6,
-                          padding: "2px 8px",
-                          borderRadius: "8px",
-                          background:
-                            row.status === "accepted"
-                              ? "#ec4899"
-                              : row.status === "rejected"
-                              ? "#ef4444"
-                              : row.status === "no setup"
-                              ? "#ec4899"
-                              : "#7c3aed",
-                          color: "#fff",
-                          fontWeight: "bold",
-                          fontSize: "0.8em",
-                          boxShadow: "0 1px 4px rgba(124,62,237,0.10)",
-                          verticalAlign: "middle",
-                          display: "inline-block",
-                        }}
-                      >
-                        🚀 Slingshot
-                      </span>
-                    )}
-                  </td>
-                  <td>{formatChangeValue(row["%CHNG"])}</td>
-                  {isMobile && (
-                    <td className="actions-cell">
-                      {row.status !== "rejected" &&
-                        row.status !== "accepted" &&
-                        row.status !== "no setup" && (
-                          <div
-                            className="action-buttons"
-                            style={{
-                              display: "flex",
-                              gap: "3px",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              flexDirection: "row",
-                              flexWrap: "nowrap",
-                            }}
-                          >
-                            <button
-                              className="accept-button"
-                              style={{
-                                minWidth: 24,
-                                minHeight: 24,
-                                fontSize: 12,
-                                borderRadius: 4,
-                                border: "none",
-                                background: "#4ade80",
-                                color: "#000",
-                                cursor: "pointer",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "2px",
-                              }}
-                              onClick={() => onAcceptEntry(row.SYMBOL)}
-                              title="Accept"
-                            >
-                              <Check size={12} />
-                            </button>
-                            <button
-                              className="reject-button"
-                              style={{
-                                minWidth: 24,
-                                minHeight: 24,
-                                fontSize: 12,
-                                borderRadius: 4,
-                                border: "none",
-                                background: "#f87171",
-                                color: "#000",
-                                cursor: "pointer",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: "2px",
-                              }}
-                              onClick={() => onRejectEntry(row.SYMBOL)}
-                              title="Reject"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        )}
-                      {row.status === "accepted" && (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "3px",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <span
-                            className="status-indicator accepted"
-                            style={{ fontSize: "14px" }}
-                          >
-                            ✓
-                          </span>
-                          <button
-                            className="flag-button"
-                            style={{
-                              minWidth: 24,
-                              minHeight: 24,
-                              fontSize: 12,
-                              borderRadius: 4,
-                              border: "none",
-                              background: "#ec4899",
-                              color: "#fff",
-                              cursor: "pointer",
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              padding: "2px",
-                            }}
-                            onClick={() => handleFlagEntry(row.SYMBOL)}
-                            title="No Setup"
-                          >
-                            🚫
-                          </button>
-                        </div>
-                      )}
-                      {row.status === "no setup" && (
-                        <span
-                          className="status-indicator flagged"
-                          style={{ fontSize: "14px", color: "#ec4899" }}
-                        >
-                          🚫
-                        </span>
-                      )}
-                      {row.status === "rejected" && (
-                        <span
-                          className="status-indicator rejected"
-                          style={{ fontSize: "14px" }}
-                        >
-                          ✗
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  <td>₹{parseFloat(row.LTP).toFixed(2)}</td>
-                  {!isMobile && (
-                    <td
-                      className="actions-cell"
-                      style={{
-                        padding: "8px",
-                        textAlign: "center",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {row.status !== "rejected" &&
-                        row.status !== "accepted" &&
-                        row.status !== "no setup" && (
-                          <div
-                            className="action-buttons"
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              flexDirection: "row",
-                              flexWrap: "nowrap",
-                            }}
-                          >
-                            <button
-                              className="accept-button"
-                              style={{
-                                minWidth: 36,
-                                minHeight: 36,
-                                fontSize: 16,
-                                borderRadius: 6,
-                                border: "none",
-                                background: "#4ade80",
-                                color: "#000",
-                                cursor: "pointer",
-                                boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                              onClick={() => onAcceptEntry(row.SYMBOL)}
-                              title="Accept"
-                            >
-                              <Check size={20} />
-                            </button>
-                            <button
-                              className="reject-button"
-                              style={{
-                                minWidth: 36,
-                                minHeight: 36,
-                                fontSize: 16,
-                                borderRadius: 6,
-                                border: "none",
-                                background: "#f87171",
-                                color: "#000",
-                                cursor: "pointer",
-                                boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                              onClick={() => onRejectEntry(row.SYMBOL)}
-                              title="Reject"
-                            >
-                              <X size={20} />
-                            </button>
-                          </div>
-                        )}
-                      {row.status === "accepted" && (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "8px",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <span
-                            className="status-indicator accepted"
-                            style={{ fontSize: "18px" }}
-                          >
-                            ✓
-                          </span>
-                          <button
-                            className="flag-button"
-                            style={{
-                              minWidth: 36,
-                              minHeight: 36,
-                              fontSize: 16,
-                              borderRadius: 6,
-                              border: "none",
-                              background: "#ec4899",
-                              color: "#fff",
-                              cursor: "pointer",
-                              boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                            onClick={() => handleFlagEntry(row.SYMBOL)}
-                            title="No Setup"
-                          >
-                            🚫
-                          </button>
-                        </div>
-                      )}
-                      {row.status === "no setup" && (
-                        <span
-                          className="status-indicator flagged"
-                          style={{ fontSize: "18px", color: "#ec4899" }}
-                        >
-                          🚫
-                        </span>
-                      )}
-                      {row.status === "rejected" && (
-                        <span
-                          className="status-indicator rejected"
-                          style={{ fontSize: "18px" }}
-                        >
-                          ✗
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  <td className="upload-time-cell">
-                    {formatTimeOnly(row["Upload Date & Time"])}
-                  </td>
-                  {!isMobile && <td>{formatVolume(row["VOLUME (shares)"])}</td>}
-                </tr>
-              );
-            })}
+            {paginatedData.map((row, index) => (
+              <StockTableRow
+                key={`${row.SYMBOL}-${index}`}
+                row={row}
+                index={index}
+                isMobile={isMobile}
+                slingshotActive={slingshotActive}
+                onAcceptEntry={onAcceptEntry}
+                onRejectEntry={onRejectEntry}
+                onFlagEntry={onFlagEntry}
+                getRowClassName={(row) => getRowClassName(row, slingshotActive)}
+                formatChangeValue={formatChangeValue}
+                formatTimeOnly={formatTimeOnly}
+                formatVolume={formatVolume}
+              />
+            ))}
           </tbody>
         </table>
       </div>
