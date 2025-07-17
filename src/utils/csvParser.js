@@ -92,6 +92,7 @@ const validateAndProcessData = (data, fileName) => {
   const processedData = [];
   const skippedDuplicates = [];
   let skippedCount = 0;
+  let skippedLowVolumeCount = 0;
 
   data.forEach((row, index) => {
     // Skip rows with missing required data using mapped column names
@@ -126,17 +127,9 @@ const validateAndProcessData = (data, fileName) => {
       return;
     }
 
-    // Parse and validate numeric fields
+    // Parse numeric fields
     const parsedLTP = parseFloat(ltpValue);
     const parsedChange = parseFloat(changeValue);
-
-    // Only accept green gainers with %CHNG >= 2
-    if (isNaN(parsedChange) || parsedChange < 2) {
-      console.warn(
-        `Skipping row ${index + 1}: %CHNG less than 2% (${parsedChange})`
-      );
-      return;
-    }
 
     // Parse volume - remove commas and convert to number
     const cleanedVolume = volumeValue.toString().replace(/,/g, "");
@@ -151,11 +144,15 @@ const validateAndProcessData = (data, fileName) => {
       return;
     }
 
-    // Only add rows with volume >= 1,000,000
+    // Skip stocks with volume less than 10 lakh (1,000,000)
     if (parsedVolume < 1000000) {
       console.warn(
-        `Skipping row ${index + 1}: VOLUME less than 10L (${parsedVolume})`
+        `Skipping row ${
+          index + 1
+        }: Low volume stock ${symbolUpper} with volume ${parsedVolume} (< 10 lakh)`
       );
+      skippedLowVolumeCount++;
+      skippedCount++;
       return;
     }
 
@@ -186,6 +183,7 @@ const validateAndProcessData = (data, fileName) => {
       totalRows: data.length,
       addedCount: processedData.length,
       skippedCount: skippedCount,
+      skippedLowVolumeCount: skippedLowVolumeCount,
       skippedDuplicates: skippedDuplicates,
       timestamp: currentDateTime,
     },

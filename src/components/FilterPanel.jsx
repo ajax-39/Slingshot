@@ -19,7 +19,8 @@ const FilterPanel = ({ filters, setFilters, totalRecords, filteredRecords }) => 
       volumeType: 'all',
       volumeThreshold: '',
       dateFrom: '',
-      dateTo: ''
+      dateTo: '',
+      uploadTime: ''
     })
   }
 
@@ -147,6 +148,16 @@ const FilterPanel = ({ filters, setFilters, totalRecords, filteredRecords }) => 
         <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
           From - To dates
         </div>
+      </div>
+
+      <div className="filter-section">
+        <h3>Upload Time</h3>
+        <input
+          type="time"
+          value={filters.uploadTime}
+          onChange={(e) => handleFilterChange('uploadTime', e.target.value)}
+          className="filter-input"
+        />
       </div>
 
       {hasActiveFilters && (

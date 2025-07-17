@@ -6,6 +6,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import StockTableHeader from "./StockTableHeader";
 import StockTableRow from "./StockTableRow";
@@ -18,7 +20,7 @@ import {
 
 const ITEMS_PER_PAGE = 50;
 
-const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
+const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry, showRejected }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "%CHNG",
@@ -35,9 +37,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [slingshotActive, setSlingshotActive] = useState(false);
-  const [gainersActive, setGainersActive] = useState(false);
-  const [losersActive, setLosersActive] = useState(false);
-  const [showRejected, setShowRejected] = useState(false);
+  const [topGainersActive, setTopGainersActive] = useState(false);
+  const [topLosersActive, setTopLosersActive] = useState(false);
   const tableRef = useRef(null);
 
   // Handle flag entry for "no setup" status
@@ -82,15 +83,6 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   // Separate data by status for proper ordering
   const { pendingData, acceptedData, flaggedData, rejectedData } =
     useMemo(() => {
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        return {
-          pendingData: [],
-          acceptedData: [],
-          flaggedData: [],
-          rejectedData: [],
-        };
-      }
-
       const pending = data.filter(
         (item) => !item.status || item.status === "pending"
       );
@@ -105,67 +97,41 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
       };
     }, [data]);
 
-  // Filter non-rejected data based on search term and column filters
-  // Calculate counts for different filter categories
-  const { slingshotCount, gainersCount, losersCount } = useMemo(() => {
-    const allStocks = [...pendingData, ...acceptedData, ...flaggedData];
+  // Filter data based on search term and column filters
+  const filteredData = useMemo(() => {
+    let filtered = showRejected ? data : [...pendingData, ...acceptedData, ...flaggedData];
 
-    let sCount = 0;
-    let gCount = 0;
-    let lCount = 0;
-
-    allStocks.forEach((item) => {
-      const ltp = parseFloat(item.LTP || 0);
-      const vol = parseFloat(item["VOLUME (shares)"] || 0);
-      const chng = parseFloat(item["%CHNG"] || 0);
-
-      // Count slingshot stocks
-      if (ltp >= 100 && ltp <= 3000 && vol >= 1000000 && chng > 3) {
-        sCount++;
+    // Top Gainers filter - only show stocks with positive %CHNG
+    if (topGainersActive) {
+      filtered = filtered.filter((item) => {
+        const chng = parseFloat(item["%CHNG"]);
+        return chng > 0;
+      });
+      // Reset top losers if active
+      if (topLosersActive) {
+        setTopLosersActive(false);
       }
-
-      // Count gainers
-      if (chng > 2) {
-        gCount++;
+    }
+    
+    // Top Losers filter - only show stocks with negative %CHNG
+    if (topLosersActive) {
+      filtered = filtered.filter((item) => {
+        const chng = parseFloat(item["%CHNG"]);
+        return chng < 0;
+      });
+      // Reset top gainers if active
+      if (topGainersActive) {
+        setTopGainersActive(false);
       }
+    }
 
-      // Count losers
-      if (chng < -1) {
-        lCount++;
-      }
-    });
-
-    return {
-      slingshotCount: sCount,
-      gainersCount: gCount,
-      losersCount: lCount,
-    };
-  }, [pendingData, acceptedData, flaggedData]);
-
-  const filteredNonRejectedData = useMemo(() => {
-    let filtered = [...pendingData, ...acceptedData, ...flaggedData]; // Slingshot filter logic
+    // Slingshot filter logic
     if (slingshotActive) {
       filtered = filtered.filter((item) => {
         const ltp = parseFloat(item.LTP);
         const vol = parseFloat(item["VOLUME (shares)"]);
         const chng = parseFloat(item["%CHNG"]);
         return ltp >= 100 && ltp <= 3000 && vol >= 1000000 && chng > 3;
-      });
-    }
-
-    // Gainers filter logic (only stocks >= +2% change)
-    if (gainersActive) {
-      filtered = filtered.filter((item) => {
-        const chng = parseFloat(item["%CHNG"]);
-        return chng >= 2;
-      });
-    }
-
-    // Losers filter logic (only stocks <= -1% change)
-    if (losersActive) {
-      filtered = filtered.filter((item) => {
-        const chng = parseFloat(item["%CHNG"]);
-        return chng <= -1;
       });
     }
 
@@ -194,19 +160,21 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
 
     return filtered;
   }, [
+    data,
     pendingData,
     acceptedData,
     flaggedData,
     searchTerm,
     columnFilters,
     slingshotActive,
-    gainersActive,
-    losersActive,
+    topGainersActive,
+    topLosersActive,
+    showRejected,
   ]);
 
-  // Sort non-rejected data
-  const sortedNonRejectedData = useMemo(() => {
-    let dataToSort = filteredNonRejectedData;
+  // Sort data
+  const sortedData = useMemo(() => {
+    let dataToSort = filteredData;
 
     // Apply column filter sorting
     if (columnFilters.LTP === "asc" || columnFilters.LTP === "desc") {
@@ -302,14 +270,12 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
       if (aStr > bStr) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-  }, [filteredNonRejectedData, sortConfig, columnFilters]);
+  }, [filteredData, sortConfig, columnFilters]);
 
-  // Combine sorted data with rejected data (rejected only shown when toggled)
+  // Use sorted data directly
   const combinedData = useMemo(() => {
-    return showRejected
-      ? [...sortedNonRejectedData, ...rejectedData]
-      : [...sortedNonRejectedData];
-  }, [sortedNonRejectedData, rejectedData, showRejected]);
+    return sortedData;
+  }, [sortedData]);
 
   // Paginate combined data
   const paginatedData = useMemo(() => {
@@ -352,47 +318,26 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
 
   const handleSlingshotToggle = () => {
     setSlingshotActive((prev) => !prev);
-    if (!slingshotActive) {
-      setGainersActive(false);
-      setLosersActive(false);
-    }
   };
 
-  const handleGainersToggle = () => {
-    setGainersActive((prev) => !prev);
-    if (!gainersActive) {
-      setLosersActive(false);
-      setSlingshotActive(false);
+  const handleTopGainersToggle = () => {
+    setTopGainersActive((prev) => !prev);
+    if (topLosersActive) {
+      setTopLosersActive(false);
     }
+    setCurrentPage(1); // Reset to first page
   };
 
-  const handleLosersToggle = () => {
-    setLosersActive((prev) => !prev);
-    if (!losersActive) {
-      setGainersActive(false);
-      setSlingshotActive(false);
+  const handleTopLosersToggle = () => {
+    setTopLosersActive((prev) => !prev);
+    if (topGainersActive) {
+      setTopGainersActive(false);
     }
-  };
-
-  const handleToggleRejected = () => {
-    setShowRejected((prev) => !prev);
-    setCurrentPage(1); // Reset to first page when toggling rejected stocks
+    setCurrentPage(1); // Reset to first page
   };
 
   const handleOpenChartsClick = () => {
-    // Only open charts for stocks that match the current active filter
-    // and are pending (not already processed)
-    if (!filteredNonRejectedData || filteredNonRejectedData.length === 0) {
-      return; // No stocks to open charts for
-    }
-
-    const currentFilteredStocks = filteredNonRejectedData.filter(
-      (row) => !row.status || row.status === "pending"
-    );
-
-    if (currentFilteredStocks.length > 0) {
-      handleOpenCharts(currentFilteredStocks);
-    }
+    handleOpenCharts(data);
   };
 
   const formatChangeValue = (change) => {
@@ -439,20 +384,78 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     <div className="stock-table-container" ref={tableRef}>
       <div className="table-header">
         <h2>Stock Scanner</h2>
-        <button
-          className="slingshot-toggle-button"
-          onClick={handleSlingshotToggle}
-          style={{
-            background: slingshotActive ? "#7c3aed" : "#374151",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.9em",
-            display: "flex",
-            alignItems: "center",
+        <div style={{display: "flex", gap: "10px"}}>
+          <button
+            className="top-gainers-toggle-button"
+            onClick={handleTopGainersToggle}
+            style={{
+              background: topGainersActive ? "#10b981" : "#374151",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.9em",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <TrendingUp size={18} />
+            Top Gainers
+          </button>
+          
+          <button
+            className="top-losers-toggle-button"
+            onClick={handleTopLosersToggle}
+            style={{
+              background: topLosersActive ? "#ef4444" : "#374151",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.9em",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <TrendingDown size={18} />
+            Top Losers
+          </button>
+
+          <button
+            className="slingshot-toggle-button"
+            onClick={handleSlingshotToggle}
+            style={{
+              background: slingshotActive ? "#7c3aed" : "#374151",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.9em",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: slingshotActive
+                ? "0 2px 8px rgba(124,62,237,0.3)"
+                : "0 1px 4px rgba(0,0,0,0.1)",
+              transition: "all 0.2s ease",
+            }}
+            title={
+              slingshotActive
+                ? "Disable Slingshot Filter"
+                : "Enable Slingshot Filter"
+            }
+          >
+            🚀 Slingshot
+          </button>
+        </div>
             gap: "6px",
             boxShadow: slingshotActive
               ? "0 2px 8px rgba(124,62,237,0.3)"
@@ -465,64 +468,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
               : "Enable Slingshot Filter"
           }
         >
-          🚀 Slingshot{" "}
-          <span className="filter-count">{`(${slingshotCount})`}</span>
-        </button>
-        <button
-          className="gainers-button"
-          onClick={handleGainersToggle}
-          style={{
-            background: gainersActive ? "#10b981" : "#374151",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.9em",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            boxShadow: gainersActive
-              ? "0 2px 8px rgba(16,185,129,0.3)"
-              : "0 1px 4px rgba(0,0,0,0.1)",
-            transition: "all 0.2s ease",
-          }}
-          title={
-            gainersActive
-              ? "Disable Gainers Filter (>2%)"
-              : "Enable Gainers Filter (>2%)"
-          }
-        >
-          📈 Gainers <span className="filter-count">{`(${gainersCount})`}</span>
-        </button>
-        <button
-          className="losers-button"
-          onClick={handleLosersToggle}
-          style={{
-            background: losersActive ? "#ef4444" : "#374151",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.9em",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            boxShadow: losersActive
-              ? "0 2px 8px rgba(239,68,68,0.3)"
-              : "0 1px 4px rgba(0,0,0,0.1)",
-            transition: "all 0.2s ease",
-          }}
-          title={
-            losersActive
-              ? "Disable Losers Filter (<-1%)"
-              : "Enable Losers Filter (<-1%)"
-          }
-        >
-          📉 Losers <span className="filter-count">{`(${losersCount})`}</span>
+          🚀 Slingshot
         </button>
         <button
           className="charts-button"
@@ -542,14 +488,9 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
             boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
             transition: "all 0.2s ease",
           }}
-          title="Open TradingView charts for filtered pending stocks"
+          title="Open TradingView charts for all pending stocks"
         >
-          📊 Charts{" "}
-          <span className="filter-count">{`(${
-            filteredNonRejectedData?.filter(
-              (row) => !row.status || row.status === "pending"
-            )?.length || 0
-          })`}</span>
+          📊 Charts
         </button>
         <div
           className="search-container"
@@ -649,35 +590,6 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
           </button>
         </div>
       )}
-
-      <div className="rejected-stocks-toggle">
-        <button
-          onClick={handleToggleRejected}
-          className="toggle-rejected-button"
-          style={{
-            background: showRejected ? "#ef4444" : "#374151",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            marginTop: "20px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "0.9em",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-            transition: "all 0.2s ease",
-            width: "fit-content",
-            margin: "20px auto 0",
-          }}
-        >
-          {showRejected ? "Hide Rejected Stocks" : "Show Rejected Stocks"} (
-          {rejectedData.length})
-        </button>
-      </div>
     </div>
   );
 };
