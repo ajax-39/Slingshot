@@ -111,6 +111,11 @@ const StockTableHeader = ({
   return (
     <thead>
       <tr>
+        <th className="column-header score-column">
+          <div className="column-header-content">
+            <span>SCORE</span>
+          </div>
+        </th>
         <th className="column-header">
           <div className="column-header-content">
             <span onClick={() => onSort("SYMBOL")}>

@@ -476,6 +476,48 @@
   user-select: none;
 }
 
+/* Score Column Specific Styles */
+.score-column {
+  width: 60px;
+  text-align: center;
+  min-width: 60px;
+  max-width: 60px;
+}
+
+.score-cell {
+  width: 60px;
+  text-align: center;
+  padding: 8px !important;
+  vertical-align: middle;
+}
+
+/* Strategy Popup Overlay */
+.strategy-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.strategy-popup {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
 .filter-button {
   background: none;
   border: none;
@@ -768,10 +810,18 @@
     min-width: 100%;
   }
 
-  /* Hide VOLUME column on mobile */
-  .data-table th:nth-child(4),
-  .data-table td:nth-child(4) {
+  /* Hide VOLUME column on mobile - adjusted for Score column */
+  .data-table th:nth-child(7),
+  .data-table td:nth-child(7) {
     display: none;
+  }
+
+  .score-column,
+  .score-cell {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+    padding: 6px !important;
   }
 
   .column-header {
@@ -822,10 +872,18 @@
     min-width: 100%;
   }
 
-  /* Hide VOLUME column on mobile */
-  .data-table th:nth-child(4),
-  .data-table td:nth-child(4) {
+  /* Hide VOLUME column on mobile - adjusted for Score column */
+  .data-table th:nth-child(7),
+  .data-table td:nth-child(7) {
     display: none;
+  }
+
+  .score-column,
+  .score-cell {
+    width: 45px;
+    min-width: 45px;
+    max-width: 45px;
+    padding: 4px !important;
   }
 
   .column-header {
@@ -866,16 +924,16 @@
 }
 
 /* Table Column Width Optimization */
-.data-table th:nth-child(1), /* SYMBOL */
+.data-table th:nth-child(1), /* SCORE */
 .data-table td:nth-child(1) {
-  width: 25%;
-  min-width: 80px;
+  width: 8%;
+  min-width: 60px;
 }
 
-.data-table th:nth-child(2), /* LTP */
+.data-table th:nth-child(2), /* SYMBOL */
 .data-table td:nth-child(2) {
-  width: 20%;
-  min-width: 70px;
+  width: 22%;
+  min-width: 80px;
 }
 
 .data-table th:nth-child(3), /* %CHNG */
@@ -884,51 +942,62 @@
   min-width: 60px;
 }
 
-.data-table th:nth-child(4), /* VOLUME */
+.data-table th:nth-child(4), /* LTP */
 .data-table td:nth-child(4) {
   width: 15%;
-  min-width: 60px;
+  min-width: 70px;
 }
 
-.data-table th:nth-child(5), /* UPLOAD TIME */
+.data-table th:nth-child(5), /* ACTIONS */
 .data-table td:nth-child(5) {
-  width: 20%;
+  width: 15%;
+  min-width: 80px;
+}
+
+.data-table th:nth-child(6), /* UPLOAD TIME */
+.data-table td:nth-child(6) {
+  width: 15%;
   min-width: 100px;
 }
 
-.data-table th:nth-child(6), /* ACTIONS */
-.data-table td:nth-child(6) {
-  width: 15%;
-  min-width: 80px;
+.data-table th:nth-child(7), /* VOLUME */
+.data-table td:nth-child(7) {
+  width: 10%;
+  min-width: 60px;
 }
 
 /* Mobile Column Adjustments */
 @media (max-width: 768px) {
   /* Adjust column widths when VOLUME is hidden */
-  .data-table th:nth-child(1), /* SYMBOL */
+  .data-table th:nth-child(1), /* SCORE */
   .data-table td:nth-child(1) {
-    width: 30%;
+    width: 10%;
   }
 
-  .data-table th:nth-child(2), /* LTP */
+  .data-table th:nth-child(2), /* SYMBOL */
   .data-table td:nth-child(2) {
-    width: 20%;
+    width: 25%;
   }
 
   .data-table th:nth-child(3), /* %CHNG */
   .data-table td:nth-child(3) {
-    width: 20%;
-  }
-
-  .data-table th:nth-child(5), /* UPLOAD TIME */
-  .data-table td:nth-child(5) {
-    width: 25%;
-    font-size: 11px;
-  }
-
-  .data-table th:nth-child(6), /* ACTIONS */
-  .data-table td:nth-child(6) {
     width: 15%;
+  }
+
+  .data-table th:nth-child(4), /* LTP */
+  .data-table td:nth-child(4) {
+    width: 15%;
+  }
+
+  .data-table th:nth-child(5), /* ACTIONS */
+  .data-table td:nth-child(5) {
+    width: 15%;
+  }
+
+  .data-table th:nth-child(6), /* UPLOAD TIME */
+  .data-table td:nth-child(6) {
+    width: 20%;
+    font-size: 11px;
   }
 }
 

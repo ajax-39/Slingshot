@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import StockTableHeader from "./StockTableHeader";
 import StockTableRow from "./StockTableRow";
+import StrategyEvaluationPopup from "./StrategyEvaluationPopup";
 import {
   formatVolume,
   formatTimeOnly,
@@ -36,6 +37,11 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [slingshotActive, setSlingshotActive] = useState(false);
   const [showRejected, setShowRejected] = useState(false);
+  const [strategyPopup, setStrategyPopup] = useState({
+    isOpen: false,
+    symbol: null,
+  });
+  const [strategyScores, setStrategyScores] = useState({});
   const tableRef = useRef(null);
 
   // Handle flag entry for "no setup" status
@@ -44,6 +50,27 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     if (onFlagEntry) {
       onFlagEntry(symbol);
     }
+  };
+
+  // Handle score circle click
+  const handleScoreClick = (symbol) => {
+    setStrategyPopup({ isOpen: true, symbol });
+  };
+
+  // Handle strategy popup close
+  const handleStrategyPopupClose = () => {
+    setStrategyPopup({ isOpen: false, symbol: null });
+  };
+
+  // Handle score update from strategy evaluation
+  const handleScoreUpdate = (symbol, strategy, percentage) => {
+    setStrategyScores((prev) => ({
+      ...prev,
+      [symbol]: {
+        ...prev[symbol],
+        [strategy]: percentage,
+      },
+    }));
   };
 
   // Listen for slingshot filter toggle
@@ -451,6 +478,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
                 onAcceptEntry={onAcceptEntry}
                 onRejectEntry={onRejectEntry}
                 onFlagEntry={onFlagEntry}
+                onScoreClick={handleScoreClick}
                 getRowClassName={(row) => getRowClassName(row, slingshotActive)}
                 formatChangeValue={formatChangeValue}
                 formatTimeOnly={formatTimeOnly}
@@ -517,6 +545,13 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
             : `🗑️ View Rejected (${rejectedData.length})`}
         </button>
       </div>
+
+      <StrategyEvaluationPopup
+        symbol={strategyPopup.symbol}
+        isOpen={strategyPopup.isOpen}
+        onClose={handleStrategyPopupClose}
+        onScoreUpdate={handleScoreUpdate}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { Check, X } from "lucide-react";
+import ScoreCircle from "./ScoreCircle";
 
 const StockTableRow = ({
   row,
@@ -8,6 +9,7 @@ const StockTableRow = ({
   onAcceptEntry,
   onRejectEntry,
   onFlagEntry,
+  onScoreClick,
   getRowClassName,
   formatChangeValue,
   formatTimeOnly,
@@ -28,6 +30,12 @@ const StockTableRow = ({
 
   return (
     <tr key={`${row.SYMBOL}-${index}`} className={getRowClassName(row)}>
+      <td
+        className="score-cell"
+        style={{ textAlign: "center", padding: "8px" }}
+      >
+        <ScoreCircle symbol={row.SYMBOL} onClick={onScoreClick} />
+      </td>
       <td className="symbol-cell">
         {row.SYMBOL}
         {isSlingshot && (
