@@ -27,6 +27,20 @@ export const clearLocalStorage = () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(FILE_LOG_KEY);
     localStorage.removeItem(FIRST_UPLOAD_KEY);
+
+    // Clear all strategy scores for all stocks
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("strategy_scores_")) {
+        keysToRemove.push(key);
+      }
+    }
+
+    // Remove all strategy score keys
+    keysToRemove.forEach((key) => {
+      localStorage.removeItem(key);
+    });
   } catch (error) {
     console.error("Failed to clear localStorage:", error);
   }

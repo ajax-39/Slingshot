@@ -1,22 +1,10 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-
-const STRATEGIES = {
-  "Volume Breaker": [
-    "Short only if stock ≥ 5% and after 10:30 AM",
-    "Reversal → wait for 3rd/4th retest candle",
-    "Volume drops 50% on/after retest",
-    "Previous 4–5 volumes below average",
-    "Entry near psychological levels",
-  ],
-  "Falling Knife": [
-    "Strong uptrend, max 1 red",
-    "Perfect V-shape",
-    "2 bullish confirmation",
-    "Entry on 3rd candle",
-    "Next candle below 50% range",
-  ],
-};
+import {
+  STRATEGIES,
+  calculateStrategyScore,
+  getScoreColor,
+} from "../utils/strategyConfig";
 
 const StrategyEvaluationPopup = ({
   symbol,
@@ -47,55 +35,57 @@ const StrategyEvaluationPopup = ({
         JSON.stringify(responses)
       );
 
-      // Calculate and update score for the active strategy
-      const strategyResponses = responses[activeStrategy];
-      if (strategyResponses) {
-        const totalPoints = STRATEGIES[activeStrategy].length;
-        const acceptedPoints = Object.values(strategyResponses).filter(
-          (r) => r === "accept"
-        ).length;
-        const percentage = Math.round((acceptedPoints / totalPoints) * 100);
+      // Calculate and update score for the active strategy using shared function
+      const percentage = calculateStrategyScore(symbol, activeStrategy);
+      if (percentage !== 0 || responses[activeStrategy]) {
         onScoreUpdate(symbol, activeStrategy, percentage);
+
+        // Dispatch custom event to notify ScoreCircle components
+        window.dispatchEvent(
+          new CustomEvent("scoreUpdate", {
+            detail: { symbol, strategy: activeStrategy, score: percentage },
+          })
+        );
       }
     }
   }, [responses, activeStrategy, symbol, onScoreUpdate]);
 
   const handleResponse = (pointIndex, response) => {
     setResponses((prev) => {
-      // Clear responses from other strategies when user makes a selection
-      const otherStrategies = Object.keys(STRATEGIES).filter(
-        (s) => s !== activeStrategy
-      );
-      const clearedResponses = { ...prev };
-      otherStrategies.forEach((strategy) => {
-        delete clearedResponses[strategy];
-      });
+      // Toggle functionality: if same button is clicked, remove the response (undo)
+      const currentResponse = prev[activeStrategy]?.[pointIndex];
+      const newResponse = currentResponse === response ? undefined : response;
+
+      const updatedStrategyResponses = { ...prev[activeStrategy] };
+      if (newResponse === undefined) {
+        delete updatedStrategyResponses[pointIndex];
+      } else {
+        updatedStrategyResponses[pointIndex] = newResponse;
+      }
 
       return {
-        ...clearedResponses,
-        [activeStrategy]: {
-          ...clearedResponses[activeStrategy],
-          [pointIndex]: response,
-        },
+        ...prev,
+        [activeStrategy]: updatedStrategyResponses,
       };
     });
   };
 
   const calculateScore = (strategy) => {
-    const strategyResponses = responses[strategy];
-    if (!strategyResponses) return 0;
-
-    const totalPoints = STRATEGIES[strategy].length;
-    const acceptedPoints = Object.values(strategyResponses).filter(
-      (r) => r === "accept"
-    ).length;
-    return Math.round((acceptedPoints / totalPoints) * 100);
+    return calculateStrategyScore(symbol, strategy);
   };
 
   const getScoreColor = (percentage) => {
     if (percentage === 0) return "#6b7280"; // Gray for 0%
-    if (percentage <= 25) return "#dc2626"; // Red
-    if (percentage <= 50) return "#ea580c"; // Orange
+
+    // Negative scores - darker red shades
+    if (percentage <= -75) return "#7f1d1d"; // Very dark red
+    if (percentage <= -50) return "#991b1b"; // Dark red
+    if (percentage <= -25) return "#b91c1c"; // Medium dark red
+    if (percentage < 0) return "#dc2626"; // Red
+
+    // Positive scores
+    if (percentage <= 25) return "#ea580c"; // Orange
+    if (percentage <= 50) return "#d97706"; // Amber
     if (percentage <= 75) return "#16a34a"; // Light Green
     return "#15803d"; // Dark Green
   };

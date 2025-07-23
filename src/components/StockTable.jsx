@@ -42,6 +42,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     symbol: null,
   });
   const [strategyScores, setStrategyScores] = useState({});
+  const [scoreUpdateTrigger, setScoreUpdateTrigger] = useState(0);
   const tableRef = useRef(null);
 
   // Handle flag entry for "no setup" status
@@ -71,6 +72,8 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
         [strategy]: percentage,
       },
     }));
+    // Trigger re-render of ScoreCircle components
+    setScoreUpdateTrigger((prev) => prev + 1);
   };
 
   // Listen for slingshot filter toggle
@@ -470,7 +473,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
           <tbody>
             {paginatedData.map((row, index) => (
               <StockTableRow
-                key={`${row.SYMBOL}-${index}`}
+                key={`${row.SYMBOL}-${index}-${scoreUpdateTrigger}`}
                 row={row}
                 index={index}
                 isMobile={isMobile}
@@ -479,6 +482,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
                 onRejectEntry={onRejectEntry}
                 onFlagEntry={onFlagEntry}
                 onScoreClick={handleScoreClick}
+                scoreUpdateTrigger={scoreUpdateTrigger}
                 getRowClassName={(row) => getRowClassName(row, slingshotActive)}
                 formatChangeValue={formatChangeValue}
                 formatTimeOnly={formatTimeOnly}

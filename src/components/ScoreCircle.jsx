@@ -1,8 +1,15 @@
+import { useMemo } from "react";
 import { getBestStrategyScore, getScoreColor } from "../utils/strategyScoring";
 
 const ScoreCircle = ({ symbol, onClick }) => {
-  const score = getBestStrategyScore(symbol);
-  const color = getScoreColor(score);
+  // Use useMemo to recalculate only when symbol changes or localStorage data changes
+  const score = useMemo(() => {
+    return getBestStrategyScore(symbol);
+  }, [symbol]);
+
+  const color = useMemo(() => {
+    return getScoreColor(score);
+  }, [score]);
 
   return (
     <div

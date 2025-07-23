@@ -101,7 +101,7 @@ function App() {
 
   const handleClearAllData = () => {
     const confirmed = window.confirm(
-      "Are you sure you want to clear all data?\n\nThis will permanently delete:\n• All uploaded stock data\n• File upload history\n\nThis action cannot be undone."
+      "Are you sure you want to clear all data?\n\nThis will permanently delete:\n• All uploaded stock data\n• File upload history\n• All strategy evaluations and scores\n\nThis action cannot be undone."
     );
 
     if (confirmed) {

@@ -10,6 +10,7 @@ const StockTableRow = ({
   onRejectEntry,
   onFlagEntry,
   onScoreClick,
+  scoreUpdateTrigger,
   getRowClassName,
   formatChangeValue,
   formatTimeOnly,
@@ -34,7 +35,11 @@ const StockTableRow = ({
         className="score-cell"
         style={{ textAlign: "center", padding: "8px" }}
       >
-        <ScoreCircle symbol={row.SYMBOL} onClick={onScoreClick} />
+        <ScoreCircle
+          symbol={row.SYMBOL}
+          onClick={onScoreClick}
+          key={`score-${row.SYMBOL}-${scoreUpdateTrigger}`}
+        />
       </td>
       <td className="symbol-cell">
         {row.SYMBOL}
