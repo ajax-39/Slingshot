@@ -35,6 +35,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [slingshotActive, setSlingshotActive] = useState(false);
+  const [showRejected, setShowRejected] = useState(false);
   const tableRef = useRef(null);
 
   // Handle flag entry for "no setup" status
@@ -242,8 +243,11 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
 
   // Combine sorted data with rejected data (rejected always at bottom)
   const combinedData = useMemo(() => {
-    return [...sortedNonRejectedData, ...rejectedData];
-  }, [sortedNonRejectedData, rejectedData]);
+    if (showRejected) {
+      return rejectedData;
+    }
+    return sortedNonRejectedData;
+  }, [sortedNonRejectedData, rejectedData, showRejected]);
 
   // Paginate combined data
   const paginatedData = useMemo(() => {
@@ -335,7 +339,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   return (
     <div className="stock-table-container" ref={tableRef}>
       <div className="table-header">
-        <h2>Stock Scanner</h2>
+        <h2>Stock Scanner ({pendingData.length + acceptedData.length})</h2>
         <button
           className="slingshot-toggle-button"
           onClick={handleSlingshotToggle}
@@ -484,6 +488,35 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
           </button>
         </div>
       )}
+
+      <div
+        style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}
+      >
+        <button
+          className="rejected-toggle-button"
+          onClick={() => setShowRejected(!showRejected)}
+          style={{
+            background: showRejected ? "#dc2626" : "#6b7280",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "10px 16px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "0.9em",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+            transition: "all 0.2s ease",
+          }}
+          title={showRejected ? "Show Active Stocks" : "Show Rejected Stocks"}
+        >
+          {showRejected
+            ? "← Back to Active"
+            : `🗑️ View Rejected (${rejectedData.length})`}
+        </button>
+      </div>
     </div>
   );
 };

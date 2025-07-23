@@ -151,6 +151,22 @@ const validateAndProcessData = (data, fileName) => {
       return;
     }
 
+    // Only accept stocks with price > 50
+    if (parsedLTP <= 50) {
+      console.warn(
+        `Skipping row ${index + 1}: LTP less than or equal to 50 (${parsedLTP})`
+      );
+      return;
+    }
+
+    // Only add rows with volume >= 1,00,000
+    if (parsedVolume < 100000) {
+      console.warn(
+        `Skipping row ${index + 1}: VOLUME less than 1 lakh (${parsedVolume})`
+      );
+      return;
+    }
+
     // Create processed row with only required columns plus timestamp
     const processedRow = {
       SYMBOL: symbolUpper,
