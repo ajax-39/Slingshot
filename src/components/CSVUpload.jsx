@@ -23,11 +23,17 @@ const CSVUpload = ({ onUpload }) => {
 
     try {
       const result = await parseCSVFile(file, file.name);
-      onUpload(result.data, result.stats);
+      onUpload(result, result.stats);
 
       // Show detailed success message
       let successMsg = `Successfully processed ${file.name}!\n`;
-      successMsg += `Added: ${result.stats.addedCount} new stocks`;
+      successMsg += `Added: ${result.stats.addedCount} total stocks`;
+      if (result.stats.slingshotCount > 0) {
+        successMsg += `\nSlingshot stocks: ${result.stats.slingshotCount}`;
+      }
+      if (result.stats.regularCount > 0) {
+        successMsg += `\nRegular stocks: ${result.stats.regularCount}`;
+      }
       if (result.stats.skippedCount > 0) {
         successMsg += `\nSkipped: ${result.stats.skippedCount} duplicate stocks`;
       }

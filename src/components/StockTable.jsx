@@ -19,7 +19,13 @@ import {
 
 const ITEMS_PER_PAGE = 50;
 
-const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
+const StockTable = ({
+  data,
+  slingshotData,
+  onAcceptEntry,
+  onRejectEntry,
+  onFlagEntry,
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "%CHNG",
@@ -35,7 +41,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     "Upload Date & Time": "all",
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [slingshotActive, setSlingshotActive] = useState(false);
+  const [activeTable, setActiveTable] = useState("regular"); // 'regular' or 'slingshot'
   const [showRejected, setShowRejected] = useState(false);
   const [strategyPopup, setStrategyPopup] = useState({
     isOpen: false,
@@ -47,9 +53,10 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
 
   // Handle flag entry for "no setup" status
   const handleFlagEntry = (symbol) => {
-    // This will be passed up to parent component to update the entry status
+    // Determine which category based on active table
+    const category = activeTable === "slingshot" ? "slingshot" : "regular";
     if (onFlagEntry) {
-      onFlagEntry(symbol);
+      onFlagEntry(symbol, category);
     }
   };
 
@@ -76,11 +83,12 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     setScoreUpdateTrigger((prev) => prev + 1);
   };
 
-  // Listen for slingshot filter toggle
+  // Listen for table toggle
   useEffect(() => {
-    const handler = () => setSlingshotActive((prev) => !prev);
-    window.addEventListener("slingshot-filter-toggle", handler);
-    return () => window.removeEventListener("slingshot-filter-toggle", handler);
+    const handler = () =>
+      setActiveTable((prev) => (prev === "regular" ? "slingshot" : "regular"));
+    window.addEventListener("table-toggle", handler);
+    return () => window.removeEventListener("table-toggle", handler);
   }, []);
 
   // Handle responsive design
@@ -107,36 +115,29 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     };
   }, []);
 
+  // Get current dataset based on active table
+  const currentData = activeTable === "slingshot" ? slingshotData : data;
+
   // Separate data by status for proper ordering
   const { pendingData, acceptedData, flaggedData, rejectedData } =
     useMemo(() => {
-      const pending = data.filter(
+      const pending = currentData.filter(
         (item) => !item.status || item.status === "pending"
       );
-      const accepted = data.filter((item) => item.status === "accepted");
-      const flagged = data.filter((item) => item.status === "no setup");
-      const rejected = data.filter((item) => item.status === "rejected");
+      const accepted = currentData.filter((item) => item.status === "accepted");
+      const flagged = currentData.filter((item) => item.status === "no setup");
+      const rejected = currentData.filter((item) => item.status === "rejected");
       return {
         pendingData: pending,
         acceptedData: accepted,
         flaggedData: flagged,
         rejectedData: rejected,
       };
-    }, [data]);
+    }, [currentData]);
 
   // Filter non-rejected data based on search term and column filters
   const filteredNonRejectedData = useMemo(() => {
     let filtered = [...pendingData, ...acceptedData, ...flaggedData];
-
-    // Slingshot filter logic
-    if (slingshotActive) {
-      filtered = filtered.filter((item) => {
-        const ltp = parseFloat(item.LTP);
-        const vol = parseFloat(item["VOLUME (shares)"]);
-        const chng = parseFloat(item["%CHNG"]);
-        return ltp >= 100 && ltp <= 3000 && vol >= 1000000 && chng > 3;
-      });
-    }
 
     // Global search
     if (searchTerm) {
@@ -162,14 +163,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     }
 
     return filtered;
-  }, [
-    pendingData,
-    acceptedData,
-    flaggedData,
-    searchTerm,
-    columnFilters,
-    slingshotActive,
-  ]);
+  }, [pendingData, acceptedData, flaggedData, searchTerm, columnFilters]);
 
   // Sort non-rejected data
   const sortedNonRejectedData = useMemo(() => {
@@ -319,11 +313,11 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   };
 
   const handleSlingshotToggle = () => {
-    setSlingshotActive((prev) => !prev);
+    setActiveTable((prev) => (prev === "regular" ? "slingshot" : "regular"));
   };
 
   const handleOpenChartsClick = () => {
-    handleOpenCharts(data);
+    handleOpenCharts(currentData);
   };
 
   const formatChangeValue = (change) => {
@@ -356,7 +350,7 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
     );
   };
 
-  if (data.length === 0) {
+  if (data.length === 0 && slingshotData.length === 0) {
     return (
       <div className="stock-table-container">
         <div className="text-center" style={{ padding: "40px" }}>
@@ -369,12 +363,15 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
   return (
     <div className="stock-table-container" ref={tableRef}>
       <div className="table-header">
-        <h2>Stock Scanner ({pendingData.length + acceptedData.length})</h2>
+        <h2>
+          {activeTable === "slingshot" ? "Slingshot Scanner" : "Stock Scanner"}(
+          {pendingData.length + acceptedData.length})
+        </h2>
         <button
           className="slingshot-toggle-button"
           onClick={handleSlingshotToggle}
           style={{
-            background: slingshotActive ? "#7c3aed" : "#374151",
+            background: activeTable === "slingshot" ? "#7c3aed" : "#374151",
             color: "#fff",
             border: "none",
             borderRadius: "6px",
@@ -385,18 +382,19 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            boxShadow: slingshotActive
-              ? "0 2px 8px rgba(124,62,237,0.3)"
-              : "0 1px 4px rgba(0,0,0,0.1)",
+            boxShadow:
+              activeTable === "slingshot"
+                ? "0 2px 8px rgba(124,62,237,0.3)"
+                : "0 1px 4px rgba(0,0,0,0.1)",
             transition: "all 0.2s ease",
           }}
           title={
-            slingshotActive
-              ? "Disable Slingshot Filter"
-              : "Enable Slingshot Filter"
+            activeTable === "slingshot"
+              ? "Switch to Regular Table"
+              : "Switch to Slingshot Table"
           }
         >
-          🚀 Slingshot
+          🚀 {activeTable === "slingshot" ? "Regular" : "Slingshot"}
         </button>
         <button
           className="charts-button"
@@ -477,13 +475,25 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
                 row={row}
                 index={index}
                 isMobile={isMobile}
-                slingshotActive={slingshotActive}
-                onAcceptEntry={onAcceptEntry}
-                onRejectEntry={onRejectEntry}
-                onFlagEntry={onFlagEntry}
+                slingshotActive={activeTable === "slingshot"}
+                onAcceptEntry={(symbol) =>
+                  onAcceptEntry(
+                    symbol,
+                    activeTable === "slingshot" ? "slingshot" : "regular"
+                  )
+                }
+                onRejectEntry={(symbol) =>
+                  onRejectEntry(
+                    symbol,
+                    activeTable === "slingshot" ? "slingshot" : "regular"
+                  )
+                }
+                onFlagEntry={handleFlagEntry}
                 onScoreClick={handleScoreClick}
                 scoreUpdateTrigger={scoreUpdateTrigger}
-                getRowClassName={(row) => getRowClassName(row, slingshotActive)}
+                getRowClassName={(row) =>
+                  getRowClassName(row, activeTable === "slingshot")
+                }
                 formatChangeValue={formatChangeValue}
                 formatTimeOnly={formatTimeOnly}
                 formatVolume={formatVolume}
@@ -548,6 +558,22 @@ const StockTable = ({ data, onAcceptEntry, onRejectEntry, onFlagEntry }) => {
             ? "← Back to Active"
             : `🗑️ View Rejected (${rejectedData.length})`}
         </button>
+      </div>
+
+      {/* Data Summary */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: "16px",
+          gap: "20px",
+          fontSize: "0.9em",
+          color: "#6b7280",
+        }}
+      >
+        <span>Regular Stocks: {data.length}</span>
+        <span>Slingshot Stocks: {slingshotData.length}</span>
+        <span>Total: {data.length + slingshotData.length}</span>
       </div>
 
       <StrategyEvaluationPopup

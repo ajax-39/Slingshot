@@ -17,12 +17,14 @@ import { isDataExpired } from "./utils/dateUtils";
 
 function App() {
   const [stockData, setStockData] = useState([]);
+  const [slingshotData, setSlingshotData] = useState([]);
   const [uploadLog, setUploadLog] = useState([]);
   const [currentView, setCurrentView] = useState("upload");
 
   // Load data from localStorage on component mount
   useEffect(() => {
     const savedData = loadDataFromLocalStorage();
+    const savedSlingshotData = loadDataFromLocalStorage("slingshot");
     const savedLog = loadFileUploadLog();
     const firstUploadTime = getFirstUploadTime();
 
@@ -37,27 +39,44 @@ function App() {
         setCurrentView("scanner");
       }
 
+      if (savedSlingshotData && savedSlingshotData.length > 0) {
+        setSlingshotData(savedSlingshotData);
+      }
+
       if (savedLog && savedLog.length > 0) {
         setUploadLog(savedLog);
       }
     }
   }, []);
 
-  const handleCSVUpload = (newData, stats) => {
+  const handleCSVUpload = (uploadResult, stats) => {
     // Add status 'pending' to new entries
-    const newDataWithStatus = newData.map((item) => ({
+    const newDataWithStatus = uploadResult.regularData.map((item) => ({
       ...item,
       status: "pending",
     }));
 
-    // Merge with existing data - duplicates are already filtered in csvParser
+    const newSlingshotDataWithStatus = uploadResult.slingshotData.map(
+      (item) => ({
+        ...item,
+        status: "pending",
+      })
+    );
+
+    // Merge with existing data
     const mergedData = [...stockData, ...newDataWithStatus];
+    const mergedSlingshotData = [
+      ...slingshotData,
+      ...newSlingshotDataWithStatus,
+    ];
 
     setStockData(mergedData);
+    setSlingshotData(mergedSlingshotData);
     saveDataToLocalStorage(mergedData);
+    saveDataToLocalStorage(mergedSlingshotData, "slingshot");
 
     // Save first upload time if this is the first upload
-    if (stockData.length === 0) {
+    if (stockData.length === 0 && slingshotData.length === 0) {
       saveFirstUploadTime(stats.timestamp);
     }
 
@@ -75,28 +94,52 @@ function App() {
     setCurrentView("scanner");
   };
 
-  const handleAcceptEntry = (symbol) => {
-    const updatedData = stockData.map((item) =>
-      item.SYMBOL === symbol ? { ...item, status: "accepted" } : item
-    );
-    setStockData(updatedData);
-    saveDataToLocalStorage(updatedData);
+  const handleAcceptEntry = (symbol, category = "regular") => {
+    if (category === "slingshot") {
+      const updatedData = slingshotData.map((item) =>
+        item.SYMBOL === symbol ? { ...item, status: "accepted" } : item
+      );
+      setSlingshotData(updatedData);
+      saveDataToLocalStorage(updatedData, "slingshot");
+    } else {
+      const updatedData = stockData.map((item) =>
+        item.SYMBOL === symbol ? { ...item, status: "accepted" } : item
+      );
+      setStockData(updatedData);
+      saveDataToLocalStorage(updatedData);
+    }
   };
 
-  const handleRejectEntry = (symbol) => {
-    const updatedData = stockData.map((item) =>
-      item.SYMBOL === symbol ? { ...item, status: "rejected" } : item
-    );
-    setStockData(updatedData);
-    saveDataToLocalStorage(updatedData);
+  const handleRejectEntry = (symbol, category = "regular") => {
+    if (category === "slingshot") {
+      const updatedData = slingshotData.map((item) =>
+        item.SYMBOL === symbol ? { ...item, status: "rejected" } : item
+      );
+      setSlingshotData(updatedData);
+      saveDataToLocalStorage(updatedData, "slingshot");
+    } else {
+      const updatedData = stockData.map((item) =>
+        item.SYMBOL === symbol ? { ...item, status: "rejected" } : item
+      );
+      setStockData(updatedData);
+      saveDataToLocalStorage(updatedData);
+    }
   };
 
-  const handleFlagEntry = (symbol) => {
-    const updatedData = stockData.map((item) =>
-      item.SYMBOL === symbol ? { ...item, status: "no setup" } : item
-    );
-    setStockData(updatedData);
-    saveDataToLocalStorage(updatedData);
+  const handleFlagEntry = (symbol, category = "regular") => {
+    if (category === "slingshot") {
+      const updatedData = slingshotData.map((item) =>
+        item.SYMBOL === symbol ? { ...item, status: "no setup" } : item
+      );
+      setSlingshotData(updatedData);
+      saveDataToLocalStorage(updatedData, "slingshot");
+    } else {
+      const updatedData = stockData.map((item) =>
+        item.SYMBOL === symbol ? { ...item, status: "no setup" } : item
+      );
+      setStockData(updatedData);
+      saveDataToLocalStorage(updatedData);
+    }
   };
 
   const handleClearAllData = () => {
@@ -107,6 +150,7 @@ function App() {
     if (confirmed) {
       clearLocalStorage();
       setStockData([]);
+      setSlingshotData([]);
       setUploadLog([]);
       setCurrentView("upload");
     }
@@ -117,7 +161,7 @@ function App() {
       <Navigation
         currentView={currentView}
         setCurrentView={setCurrentView}
-        dataCount={stockData.length}
+        dataCount={stockData.length + slingshotData.length}
         onClearAllData={handleClearAllData}
       />
 
@@ -133,6 +177,7 @@ function App() {
           <div className="scanner-layout">
             <StockTable
               data={stockData}
+              slingshotData={slingshotData}
               onAcceptEntry={handleAcceptEntry}
               onRejectEntry={handleRejectEntry}
               onFlagEntry={handleFlagEntry}

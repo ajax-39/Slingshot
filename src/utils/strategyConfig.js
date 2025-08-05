@@ -2,7 +2,7 @@
 export const STRATEGIES = {
   "Volume Breaker": [
     "Short only if stock ≥ 5%, after 10:30 AM, not All Time High",
-    "Reversal → wait for 3rd/4th retest candle",
+    "Double Top → wait for 3rd/4th retest candle",
     "Volume drops 50% on/after retest",
     "Previous 4–5 volumes below average",
     "Entry near psychological levels",
