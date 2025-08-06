@@ -90,7 +90,6 @@ const validateAndProcessData = (data, fileName) => {
   // Process and validate each row
   const currentDateTime = getCurrentISTDateTime();
   const processedData = [];
-  const slingshotData = [];
   const skippedDuplicates = [];
   let skippedCount = 0;
 
@@ -177,43 +176,23 @@ const validateAndProcessData = (data, fileName) => {
       "Upload Date & Time": currentDateTime,
     };
 
-    // Check if stock meets slingshot criteria (volume > 1 lakh AND price between 100-10000)
-    const isSlingshotEligible =
-      parsedVolume > 100000 && parsedLTP >= 100 && parsedLTP <= 10000;
-
-    if (isSlingshotEligible) {
-      slingshotData.push({ ...processedRow, category: "slingshot" });
-    } else {
-      processedData.push({ ...processedRow, category: "regular" });
-    }
-
+    processedData.push(processedRow);
     // Add to existing symbols set for subsequent rows in the same file
     existingSymbols.add(symbolUpper);
   });
 
-  if (
-    processedData.length === 0 &&
-    slingshotData.length === 0 &&
-    skippedCount === 0
-  ) {
+  if (processedData.length === 0 && skippedCount === 0) {
     throw new Error("No valid data rows found in CSV file");
   }
-
-  // Combine both datasets for return
-  const allData = [...slingshotData, ...processedData];
 
   // Return both processed data and statistics
   // Ensure new entries are shown at the top
   return {
-    data: allData.reverse(),
-    slingshotData: slingshotData.reverse(),
-    regularData: processedData.reverse(),
+    data: processedData.reverse(),
     stats: {
       fileName: fileName || "Unknown",
       totalRows: data.length,
-      addedCount: allData.length,
-      slingshotCount: slingshotData.length,
-      regularCount: processedData.length,
+      addedCount: processedData.length,
       skippedCount: skippedCount,
       skippedDuplicates: skippedDuplicates,
       timestamp: currentDateTime,
