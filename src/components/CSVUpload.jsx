@@ -22,6 +22,8 @@ const CSVUpload = ({ onUpload }) => {
     setMessage("");
 
     try {
+      //new stocks
+      
       const result = await parseCSVFile(file, file.name);
       onUpload(result, result.stats);
 
