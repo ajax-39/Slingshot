@@ -1,12 +1,14 @@
 import { useState, useRef } from "react";
 import { Upload, FileText, AlertCircle, CheckCircle } from "lucide-react";
 import { parseCSVFile } from "../utils/csvParser";
+import { parseAjaxCSVFile } from "../utils/ajaxCsvParser";
 
 const CSVUpload = ({ onUpload }) => {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState(""); // 'success' or 'error'
+  const [activeTab, setActiveTab] = useState("nse"); // 'nse' or 'ajax'
   const fileInputRef = useRef();
 
   const handleFileSelect = async (file) => {
@@ -22,7 +24,13 @@ const CSVUpload = ({ onUpload }) => {
     setMessage("");
 
     try {
-      const result = await parseCSVFile(file, file.name);
+      let result;
+      if (activeTab === "nse") {
+        result = await parseCSVFile(file, file.name);
+      } else {
+        result = await parseAjaxCSVFile(file, file.name);
+      }
+
       onUpload(result.data, result.stats);
 
       // Show detailed success message
@@ -156,7 +164,78 @@ const CSVUpload = ({ onUpload }) => {
         </a>
       </div>
       <div className="csv-upload">
-        <h2 className="text-center mb-20">Upload NSE Stock Data</h2>
+        <h2 className="text-center mb-20">Upload Stock Data</h2>
+
+        {/* Tab Navigation */}
+        <div
+          className="upload-tabs"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "20px",
+            gap: "4px",
+          }}
+        >
+          <button
+            className={`tab-button ${activeTab === "nse" ? "active" : ""}`}
+            onClick={() => setActiveTab("nse")}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: activeTab === "nse" ? "#2a5298" : "#333",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px 8px 0 0",
+              fontSize: "1rem",
+              fontWeight: "600",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              minWidth: "120px",
+            }}
+          >
+            NSE Format
+          </button>
+          <button
+            className={`tab-button ${activeTab === "ajax" ? "active" : ""}`}
+            onClick={() => setActiveTab("ajax")}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: activeTab === "ajax" ? "#2a5298" : "#333",
+              color: "#fff",
+              border: "none",
+              borderRadius: "8px 8px 0 0",
+              fontSize: "1rem",
+              fontWeight: "600",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              minWidth: "120px",
+            }}
+          >
+            Ajax Format
+          </button>
+        </div>
+
+        {/* Column Information */}
+        <div
+          className="column-info"
+          style={{
+            backgroundColor: "#2a2a2a",
+            padding: "16px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            border: "1px solid #444",
+          }}
+        >
+          <h4 style={{ margin: "0 0 12px 0", color: "#fff", fontSize: "1rem" }}>
+            Expected Columns for {activeTab === "nse" ? "NSE" : "Ajax"} Format:
+          </h4>
+          <div style={{ color: "#ccc", fontSize: "0.9rem" }}>
+            {activeTab === "nse" ? (
+              <>SYMBOL, LTP, %CHNG, VOLUME (shares)</>
+            ) : (
+              <>Symbol, % Chg, Price, Volume</>
+            )}
+          </div>
+        </div>
 
         {message && (
           <div
@@ -203,7 +282,7 @@ const CSVUpload = ({ onUpload }) => {
               marginBottom: "24px",
             }}
           >
-            Drop CSV file here
+            Drop CSV file here ({activeTab === "nse" ? "NSE" : "Ajax"} Format)
           </h3>
           <button
             className="upload-button"
